@@ -120,7 +120,7 @@ class PilightReceiver(threading.Thread):
                     if "\n\n" in line[-2:]:
                         text = text[:-2];
                         for f in iter(text.splitlines()):
-                            #self.daemon.emit(f);
+                            #self.daemon.emit(f)
                             try:
                                 j = json.loads(f)
                                 if j['origin'] is not None and j['origin'] == "update":
@@ -142,9 +142,16 @@ class PilightReceiver(threading.Thread):
     def processUpdate(self, u):
         device = u['devices'][0]
         parts = device.split('_')
-        if len(parts) >= 4 and parts[0] == 'hue' and parts[1] == 'scene':
-            if u['values']['state'] == 'on':
-                self.updateSceneSwitches(device)
+        if parts[0] == 'hue':
+            self.parseUpdate(parts, u)
+        
+    def parseUpdate(self, parts, u):
+        device = u['devices'][0]
+        parts = device.split('_')
+        if len(parts) >= 4 and parts[0] == 'hue' and parts[1] == 'scene' and u['values']['state'] == 'on':
+            self.updateSceneSwitches(device)
+        elif parts[1] == 'bri':
+            self.updateDimmer(device, u['values']['dimlevel'])
     
     def updateSceneSwitches(self, device):
         group = device.split('_')[2]
@@ -157,6 +164,11 @@ class PilightReceiver(threading.Thread):
                     self.devices[l]['state'] = 'off'
         self.message = '\n'.join(message)          
     
+    def updateDimmer(self, device, dimlevel):
+        if dimlevel == 0:
+            self.devices[device]['state'] = 'off'
+            self.message = '{"action":"control","code":{"device":"'+device+'","state":"off"}}'
+        
     def shutdown(self):
         self.daemon.emit('shutting down pilight receiver')
         self.terminate = True

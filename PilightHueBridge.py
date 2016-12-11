@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys
+import os, sys, getopt
 import time
 import signal
 import json
@@ -55,8 +55,25 @@ class PilightHueBridge(object):
         self.hue.shutdown()
         self.terminate = True   
 
-if __name__ == "__main__":
+def usage():
+    print '\n\tUsage:\n'
+    print '\t\t-h\tHelp'
+    print '\t\t-d\tDebugmode'
     
-    bridge = PilightHueBridge(False)
+if __name__ == "__main__":
+    debug = False
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"dh")
+    except getopt.GetoptError:
+        usage()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            usage()
+            sys.exit(0)
+        if opt == '-d':
+            debug = True
+            
+    bridge = PilightHueBridge(debug)
     signal.signal(signal.SIGTERM, bridge.shutdown)
     bridge.run()

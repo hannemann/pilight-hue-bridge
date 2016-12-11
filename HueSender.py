@@ -66,14 +66,11 @@ class HueSender(threading.Thread):
                 self.bridge.set_group(groups[0].group_id, 'bri', dimlevel)
                 self.switchDimmer(parts, 'on')
         elif len(lights) > 0:
-            self.daemon.debug(u)
             self.bridge.set_group(lights[0].light_id, 'bri', u['values']['dimlevel'])
             
     def switchDimmer(self, parts, state):
         groups = [x for x in self.groups if x.name == parts[2]]
         lights = [x for x in self.lights if x.name == parts[2]]
-
-        self.daemon.debug(state)
         
         if len(groups) > 0:
             self.bridge.set_group(groups[0].group_id, 'on', state == 'on')
@@ -85,21 +82,14 @@ class HueSender(threading.Thread):
                 
                 fromBri = int(parts[3])
                 bri = int(parts[4])
-                transition = int(parts[5]) 
-                
-                self.daemon.debug(fromBri)
-                self.daemon.debug(bri)
-                self.daemon.debug(transition)
-                self.daemon.debug(light.light_id)
+                transition = int(parts[5])
                 
                 f = {
                     "on": True,
                     "bri": fromBri
                 }
-                self.daemon.debug(f)
                 
                 result = self.bridge.set_light(light.light_id, f)
-                self.daemon.debug(result)
                 
                 time.sleep(.5)
                 
@@ -108,7 +98,6 @@ class HueSender(threading.Thread):
                     "transitiontime": transition,
                     "on": bri > 0
                 }
-                self.daemon.debug(f)
                 self.bridge.set_light(light.light_id, f)
             
     

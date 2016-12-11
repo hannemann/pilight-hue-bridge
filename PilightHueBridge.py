@@ -3,7 +3,8 @@
 import os, sys
 import time
 import signal
-from PilightReceiver import PilightReceiver
+import json
+from Pilight import Pilight
 from HueSender import HueSender
 
 class PilightHueBridge(object):
@@ -12,13 +13,13 @@ class PilightHueBridge(object):
     
     def __init__(self, debugMode = False):
         self.debugMode = debugMode
-        self.pilightReceiver = PilightReceiver(self, 5)
+        self.pilight = Pilight(self, 5)
         self.hue = HueSender(self)
-        print('Initialized')
+        print('Daemon initialized')
         
     def proxyUpdate(self, update):
         self.hue.processUpdate(update)
-        self.pilightReceiver.processUpdate(update)
+        self.pilight.sender.processUpdate(update)
 
     def emit(self, message):
         print(message)
@@ -26,10 +27,20 @@ class PilightHueBridge(object):
     def debug(self, message):
         if self.debugMode is True:
             self.emit(message)
+        
+    def dumpJson(self, obj):
+        self.debug(
+            json.dumps(
+                obj,
+                sort_keys=True,
+                indent=4,
+                separators=(',', ': ')
+            )
+        )  
 
     def run(self):
         self.emit('Daemon PID: %s' % os.getpid())
-        self.pilightReceiver.start()
+        self.pilight.start()
         self.hue.start()
         while True:
             if self.terminate:
@@ -40,12 +51,12 @@ class PilightHueBridge(object):
              
     def shutdown(self, a, b):
         self.emit('Catched SIGTERM')
-        self.pilightReceiver.shutdown()
+        self.pilight.shutdown()
         self.hue.shutdown()
         self.terminate = True   
 
 if __name__ == "__main__":
     
-    bridge = PilightHueBridge(True)
+    bridge = PilightHueBridge(False)
     signal.signal(signal.SIGTERM, bridge.shutdown)
     bridge.run()

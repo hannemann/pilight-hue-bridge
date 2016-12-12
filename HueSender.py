@@ -62,13 +62,7 @@ class HueSender(threading.Thread):
     def setBrightness(self, parts, dimlevel):
         groups = [x for x in self.groups if x.name == parts[2]]
         lights = [x for x in self.lights if x.name == parts[2]]
-        if len(groups) > 0:
-            if dimlevel == 0:
-                self.switchDimmer(parts, 'off')
-            else:
-                self.bridge.set_group(groups[0].group_id, 'bri', dimlevel)
-                self.switchDimmer(parts, 'on')
-        elif len(lights) > 0:
+        if len(lights) > 0:
             self.bridge.set_group(lights[0].light_id, 'bri', u['values']['dimlevel'])
             
     def switchDimmer(self, parts, state):

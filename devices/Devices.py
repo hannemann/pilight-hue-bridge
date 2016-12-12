@@ -81,11 +81,14 @@ class Devices():
             
             if 'scene' == config['type'] and 'toggle' == config['action'] and 'on' == state:
                 self.groups[config['group']].activateScene(config['name'])
+                
+            if 'group' == config['type'] and 'bri' == config['action']:
+                self.groups[config['group']].dim(device, dimlevel)
     
     def updateDevices(self, module = None):
     
         if isinstance(module, HueSender):
-            self.daemon.debug('parse hue updates')
+            self.daemon.debug('TODO: parse hue updates')
             
             
     def getPilightDevice(self, device):

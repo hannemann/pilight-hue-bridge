@@ -6,16 +6,36 @@ import signal
 import json
 from Pilight import Pilight
 from HueSender import HueSender
+from devices.Devices import Devices
 
 class PilightHueBridge(object):
     
     terminate = False
+    modules = ['Pilight', 'HueSender']
+    devicesInitialized = False
     
     def __init__(self, debugMode = False):
         self.debugMode = debugMode
         self.pilight = Pilight(self, 5)
         self.hue = HueSender(self)
+        self.devices = Devices(self)
         print('Daemon initialized')
+        
+    def updateDevices(self, module):
+        
+        if self.devicesInitialized is False:
+            
+            if isinstance(module, Pilight):
+                self.modules.remove('Pilight')
+            elif isinstance(module, HueSender):
+                self.modules.remove('HueSender')
+                
+            if len(self.modules) == 0:
+                self.devices.initDevices()
+                self.devicesInitialized = True
+        else:
+            self.devices.update(module)
+        
         
     def proxyUpdate(self, update):
         self.hue.processUpdate(update)

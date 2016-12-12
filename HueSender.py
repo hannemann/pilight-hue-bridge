@@ -29,7 +29,7 @@ class HueSender(threading.Thread):
             self.scenes = self.bridge.scenes
             self.lights = self.bridge.lights
             self.groups = self.bridge.groups
-            #self.daemon.updateDevices()
+            self.daemon.updateDevices(self)
             self.next_update = self.next_update + 5
             self.updateTimer = threading.Timer( self.next_update - time.time(), self.update )
             self.updateTimer.start()

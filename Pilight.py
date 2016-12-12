@@ -107,6 +107,7 @@ class Pilight(threading.Thread):
                                     if 'config' in j and self.getConfigFlag is True:
                                         self.getConfigFlag = False
                                         self.receiver.parseConfig(j)
+                                        self.daemon.updateDevices(self)
                                     if 'status' in j:
                                         self.daemon.debug('Pilight action: ' + j['status'])
                                 except KeyError:

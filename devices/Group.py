@@ -26,6 +26,7 @@ class Group(object):
                 self.sync()
                 
         self.scenes = {}
+        self.activeScene = None
         self.lightIds = frozenset(light.light_id for light in self.lights)
         
     def hasLights(self, lights):
@@ -128,6 +129,7 @@ class Group(object):
             for scene in self.scenes:
                 if scene == activate:
                     self.scenes[scene].state = 'on'
+                    self.activeScene = scene.name
                 else:
                     self.scenes[scene].state = 'off'
                     

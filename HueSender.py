@@ -27,7 +27,7 @@ class HueSender(threading.Thread):
         if self.terminate is False:
             self.daemon.debug('fetching updates from bridge')
             self.scenes = self.bridge.scenes
-            self.lights = self.bridge.lights
+            self.lights = self.bridge.get_light()
             self.groups = self.bridge.groups
             self.daemon.updateDevices(self)
             self.next_update = self.next_update + 5

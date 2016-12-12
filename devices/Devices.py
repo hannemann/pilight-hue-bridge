@@ -38,15 +38,17 @@ class Devices():
                     )
                     break
 
-        for light in self.daemon.hue.lights:
-            if self.canAddLight(light.name):
-                self.initLight(self.pilightDevices['lights'][light.name], light)
+        #self.daemon.debug(self.daemon.hue.lights)
+        for lightId in self.daemon.hue.lights:
+            light = self.daemon.hue.lights[lightId]
+            if self.canAddLight(light['name']):
+                self.initLight(self.pilightDevices['lights'][light['name']], lightId, light)
             
         #self.daemon.debug(self.lights)
 
-    def initLight(self, pilight, hue):
-        light = Light(self.daemon, pilight, hue)
-        self.lights[hue.name] = light
+    def initLight(self, pilight, lightId, hue):
+        light = Light(self.daemon, pilight, lightId, hue)
+        self.lights[hue['name']] = light
     
     def initPilight(self):
         for device in self.daemon.pilight.devices:
@@ -115,9 +117,19 @@ class Devices():
     
     def updateHueDevices(self):
         
+        lights = self.daemon.hue.lights
         for group in self.daemon.hue.groups:
-            if group.name in self.groups:
-                self.groups[group.name].applyHueUpdates()
+                
+            for scene in self.groups[group.name].scenes:
+                scene = self.groups[group.name].scenes[scene]
+                if scene.isActive(lights):
+                    self.daemon.debug(scene.name)
+                    
+                    
+            #if group.name in self.groups:
+            #    self.groups[group.name].applyHueUpdates()
+                
+        
     
     def getPilightDevice(self, device):
         pilightConfig = device.split('_')

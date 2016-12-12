@@ -36,8 +36,6 @@ class Devices():
                         hueScene
                     )
                     break
-                
-        self.daemon.debug(self.groups['Wohnzimmer'].getScene('Hell'))
     
     def initPilight(self):
         for device in self.daemon.pilight.devices:
@@ -62,10 +60,33 @@ class Devices():
             pilightScene['hueName'],
             Scene(self.daemon, name, pilightScene, hueScene)
         )
+
+    def update(self, u):
+        
+        device = u['devices'][0]
+        if 'hue_' == device[:4]:
+            config = self.parseDeviceName(device)
+            
+            values = None
+            state = None
+            dimlevel = None
+            if 'values' in u:
+                values = u['values']
+                
+                if 'state' in values:
+                    state = u['values']['state']
+                    
+                if 'dimlevel' in values:
+                    dimlevel = u['values']['dimlevel']
+            
+            if 'scene' == config['type'] and 'toggle' == config['action'] and 'on' == state:
+                self.groups[config['group']].activateScene(config['name'])
     
-    def update(self, module):
+    def updateDevices(self, module = None):
+    
         if isinstance(module, HueSender):
             self.daemon.debug('parse hue updates')
+            
             
     def getPilightDevice(self, device):
         pilightConfig = device.split('_')
@@ -79,6 +100,21 @@ class Devices():
             "hueName": name,
             "pilightName": device,
             "group": group
+        }
+        
+    def parseDeviceName(self, device):
+        maxLen = 8
+        config = device.split('_')
+        config = config + [None] * (maxLen - len(config))
+        hue, type, group, name, action, fromBri, toBri, tr = config
+        return {
+            "type": type,
+            "group": group,
+            "name": name,
+            "action": action,
+            "fromBri": fromBri,
+            "toBri": toBri,
+            "transitiontime": tr
         }
     
     def addPilightGroup(self, group):

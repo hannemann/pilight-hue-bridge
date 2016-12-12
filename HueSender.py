@@ -51,23 +51,13 @@ class HueSender(threading.Thread):
         if len(parts) > 4:
             action = parts[4]
         
-        if deviceType == 'scene' and u['values']['state'] == 'on':
-            self.daemon.debug('run scene')
-            self.runScene(groupName, deviceName)
-        elif action is not None and action == 'bri':
+        if action is not None and action == 'bri':
             if 'dimlevel' in u['values']:
                 self.daemon.debug('Set brightness')
                 self.setBrightness(parts, u['values']['dimlevel'])
             else:
                 self.daemon.debug('Switch dimmer')
                 self.switchDimmer(parts, u['values']['state'])
-            
-            
-    def runScene(self, group, scene):
-        groups = [x for x in self.groups if x.name == group]
-        scenes = [x for x in self.scenes if x.name == scene]
-        if len(groups) > 0 and len(scenes) > 0:
-            self.bridge.activate_scene(groups[0].group_id, scenes[0].scene_id)
     
     def setBrightness(self, parts, dimlevel):
         groups = [x for x in self.groups if x.name == parts[2]]

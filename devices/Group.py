@@ -23,3 +23,13 @@ class Group(object):
             return self.scenes[name]
         
         return None
+    
+    def activateScene(self, name):
+        scene = self.getScene(name)
+        if scene is not None:
+            activate = scene.name
+            for scene in self.scenes:
+                if scene == activate:
+                    self.scenes[scene].state = 'on'
+                else:
+                    self.scenes[scene].state = 'off'

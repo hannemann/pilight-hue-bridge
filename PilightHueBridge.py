@@ -34,12 +34,13 @@ class PilightHueBridge(object):
                 self.devices.initDevices()
                 self.devicesInitialized = True
         else:
-            self.devices.update(module)
+            self.devices.updateDevices(module)
         
         
     def proxyUpdate(self, update):
         self.hue.processUpdate(update)
         self.pilight.sender.processUpdate(update)
+        self.devices.update(update)
 
     def emit(self, message):
         print(message)

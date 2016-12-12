@@ -35,27 +35,8 @@ class PilightSender():
         if len(parts) > 4:
             action = parts[4]
             
-        if deviceType == 'scene' and u['values']['state'] == 'on':
-            self.updateSceneSwitches(device)
         elif action is not None and action == 'bri':
             self.updateDimmer(device, u['values']['dimlevel'])
-    
-    def updateSceneSwitches(self, device):
-        group = device.split('_')[2]
-        message = []
-        for l in self.pilight.devices:
-            if l != device:
-                parts = l.split('_')
-                if len(parts) >= 4 and parts[0] == 'hue' and parts[1] == 'scene' and parts[2] == group:
-                    message.append({
-                        "action":"control",
-                        "code":{
-                            "device":str(l),
-                            "state":"off"
-                        }
-                    })
-                    self.pilight.devices[l]['state'] = 'off'
-        self.pilight.sendMessage(message)
     
     def updateDimmer(self, device, dimlevel):
         if dimlevel == 0:

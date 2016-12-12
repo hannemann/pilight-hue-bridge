@@ -1,0 +1,16 @@
+[Unit]
+Description=Bridge hue and pilight
+After=network.target
+Requires=pilight.service
+
+[Service]
+Type=simple
+User=nobody
+Group=nogroup
+WorkingDirectory=/tmp
+ExecStart=/home/pi/PilightHueBridge/PilightHueBridge.py
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

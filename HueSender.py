@@ -34,69 +34,6 @@ class HueSender(threading.Thread):
             self.updateTimer = threading.Timer( self.next_update - time.time(), self.update )
             self.updateTimer.start()
             
-            
-    def processUpdate(self, u):
-        device = u['devices'][0]
-        parts = device.split('_')
-        if parts[0] == 'hue':
-            self.parseUpdate(parts, u)
-            
-    def parseUpdate(self, parts, u):
-        
-        #self.daemon.debug(u)
-        deviceType = parts[1]
-        groupName = parts[2]
-        deviceName = parts[3]
-        action = None
-        if len(parts) > 4:
-            action = parts[4]
-        
-        if action is not None and action == 'bri':
-            if 'dimlevel' in u['values']:
-                self.daemon.debug('Set brightness')
-                self.setBrightness(parts, u['values']['dimlevel'])
-            else:
-                self.daemon.debug('Switch dimmer')
-                self.switchDimmer(parts, u['values']['state'])
-    
-    def setBrightness(self, parts, dimlevel):
-        groups = [x for x in self.groups if x.name == parts[2]]
-        lights = [x for x in self.lights if x.name == parts[2]]
-        if len(lights) > 0:
-            self.bridge.set_group(lights[0].light_id, 'bri', u['values']['dimlevel'])
-            
-    def switchDimmer(self, parts, state):
-        groups = [x for x in self.groups if x.name == parts[2]]
-        lights = [x for x in self.lights if x.name == parts[2]]
-        
-        if len(groups) > 0:
-            self.bridge.set_group(groups[0].group_id, 'on', state == 'on')
-        elif len(lights) > 0:
-            light = lights[0]
-            if state == 'off':
-                light.on = False
-            elif len(parts) == 8:
-                
-                fromBri = int(parts[5])
-                bri = int(parts[6])
-                transition = int(parts[7])
-                
-                f = {
-                    "on": True,
-                    "bri": fromBri
-                }
-                
-                result = self.bridge.set_light(light.light_id, f)
-                
-                time.sleep(.5)
-                
-                f = {
-                    "bri": bri,
-                    "transitiontime": transition,
-                    "on": bri > 0
-                }
-                self.bridge.set_light(light.light_id, f)
-            
     
     def shutdown(self):
         self.daemon.emit("Shutting down hue sender")

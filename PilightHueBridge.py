@@ -38,7 +38,6 @@ class PilightHueBridge(object):
         
         
     def proxyUpdate(self, update):
-        self.hue.processUpdate(update)
         self.devices.update(update)
 
     def emit(self, message):

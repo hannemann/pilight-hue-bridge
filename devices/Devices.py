@@ -2,6 +2,7 @@ from HueSender import HueSender
 from Pilight import Pilight
 from Scene import Scene
 from Group import Group
+from Light import Light
 
 class Devices():
     
@@ -36,6 +37,16 @@ class Devices():
                         hueScene
                     )
                     break
+
+        for light in self.daemon.hue.lights:
+            if self.canAddLight(light.name):
+                self.initLight(self.pilightDevices['lights'][light.name], light)
+            
+        #self.daemon.debug(self.lights)
+
+    def initLight(self, pilight, hue):
+        light = Light(self.daemon, pilight, hue)
+        self.lights[hue.name] = light
     
     def initPilight(self):
         for device in self.daemon.pilight.devices:
@@ -84,6 +95,17 @@ class Devices():
                 
             if 'group' == config['type'] and 'bri' == config['action']:
                 self.groups[config['group']].dim(device, dimlevel)
+                
+            if 'light' == config['type'] and 'bri' == config['action']:
+                
+                if dimlevel is not None:
+                    self.lights[config['name']].dim(dimlevel)
+                    
+                if config['transitiontime'] is not None and 'on' == state:
+                    self.lights[config['name']].setTransition(config)
+                    
+                if 'off' == state:
+                    self.lights[config['name']].state = 'off'
     
     def updateDevices(self, module = None):
     
@@ -124,7 +146,10 @@ class Devices():
         self.pilightDevices['groups'][group] = {
             "scenes":{}
         }
-        
+    
+    def canAddLight(self, hueLight):
+        return hueLight in self.pilightDevices['lights']
+    
     def canAddSceneToGroup(self, groupName, hueScene):
         return self.groups[groupName].hasLights(hueScene.lights) and self.hasPilightScene(groupName, hueScene.name)
         

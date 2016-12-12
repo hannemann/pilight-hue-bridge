@@ -29,7 +29,7 @@ class PilightSender():
         parts = device.split('_')
         if len(parts) >= 4 and parts[0] == 'hue' and parts[1] == 'scene' and u['values']['state'] == 'on':
             self.updateSceneSwitches(device)
-        elif parts[1] == 'bri':
+        elif parts[3] == 'bri':
             self.updateDimmer(device, u['values']['dimlevel'])
     
     def updateSceneSwitches(self, device):

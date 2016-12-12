@@ -7,10 +7,14 @@ class HueSender(threading.Thread):
     
     terminate = False
     daemon = None
+    lights = None
+    scenes = None
+    groups = None
 
     def __init__(self, daemon):
         threading.Thread.__init__(self)
         self.daemon = daemon
+        self.daemon.emit('hue sender initialized')
         
     def run(self):
         self.daemon.emit('starting hue sender')
@@ -25,6 +29,7 @@ class HueSender(threading.Thread):
             self.scenes = self.bridge.scenes
             self.lights = self.bridge.lights
             self.groups = self.bridge.groups
+            self.daemon.updateDevices()
             self.next_update = self.next_update + 5
             self.updateTimer = threading.Timer( self.next_update - time.time(), self.update )
             self.updateTimer.start()
@@ -38,10 +43,15 @@ class HueSender(threading.Thread):
             
     def parseUpdate(self, parts, u):
         
-        if parts[1] == 'scene' and u['values']['state'] == 'on':
+        #self.daemon.debug(u)
+        deviceType = parts[1]
+        hueName = parts[2]
+        action = parts[3]
+        
+        if deviceType == 'scene' and u['values']['state'] == 'on':
             self.daemon.debug('run scene')
-            self.runScene(parts, u)
-        elif parts[1] == 'bri':
+            self.runScene(hueName, action)
+        elif action == 'bri':
             if 'dimlevel' in u['values']:
                 self.daemon.debug('Set brightness')
                 self.setBrightness(parts, u['values']['dimlevel'])
@@ -50,9 +60,9 @@ class HueSender(threading.Thread):
                 self.switchDimmer(parts, u['values']['state'])
             
             
-    def runScene(self, parts, u):
-        groups = [x for x in self.groups if x.name == parts[2]]
-        scenes = [x for x in self.scenes if x.name == parts[3]]
+    def runScene(self, group, scene):
+        groups = [x for x in self.groups if x.name == group]
+        scenes = [x for x in self.scenes if x.name == scene]
         if len(groups) > 0 and len(scenes) > 0:
             self.bridge.activate_scene(groups[0].group_id, scenes[0].scene_id)
     
@@ -78,11 +88,11 @@ class HueSender(threading.Thread):
             light = lights[0]
             if state == 'off':
                 light.on = False
-            elif len(parts) == 6:
+            elif len(parts) == 7:
                 
-                fromBri = int(parts[3])
-                bri = int(parts[4])
-                transition = int(parts[5])
+                fromBri = int(parts[4])
+                bri = int(parts[5])
+                transition = int(parts[6])
                 
                 f = {
                     "on": True,

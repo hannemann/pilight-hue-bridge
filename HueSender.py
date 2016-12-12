@@ -29,7 +29,7 @@ class HueSender(threading.Thread):
             self.scenes = self.bridge.scenes
             self.lights = self.bridge.lights
             self.groups = self.bridge.groups
-            self.daemon.updateDevices()
+            #self.daemon.updateDevices()
             self.next_update = self.next_update + 5
             self.updateTimer = threading.Timer( self.next_update - time.time(), self.update )
             self.updateTimer.start()
@@ -45,13 +45,16 @@ class HueSender(threading.Thread):
         
         #self.daemon.debug(u)
         deviceType = parts[1]
-        hueName = parts[2]
-        action = parts[3]
+        groupName = parts[2]
+        deviceName = parts[3]
+        action = None
+        if len(parts) > 4:
+            action = parts[4]
         
         if deviceType == 'scene' and u['values']['state'] == 'on':
             self.daemon.debug('run scene')
-            self.runScene(hueName, action)
-        elif action == 'bri':
+            self.runScene(groupName, deviceName)
+        elif action is not None and action == 'bri':
             if 'dimlevel' in u['values']:
                 self.daemon.debug('Set brightness')
                 self.setBrightness(parts, u['values']['dimlevel'])
@@ -88,11 +91,11 @@ class HueSender(threading.Thread):
             light = lights[0]
             if state == 'off':
                 light.on = False
-            elif len(parts) == 7:
+            elif len(parts) == 8:
                 
-                fromBri = int(parts[4])
-                bri = int(parts[5])
-                transition = int(parts[6])
+                fromBri = int(parts[5])
+                bri = int(parts[6])
+                transition = int(parts[7])
                 
                 f = {
                     "on": True,

@@ -27,9 +27,17 @@ class PilightSender():
     def parseUpdate(self, parts, u):
         device = u['devices'][0]
         parts = device.split('_')
-        if len(parts) >= 4 and parts[0] == 'hue' and parts[1] == 'scene' and u['values']['state'] == 'on':
+        
+        deviceType = parts[1]
+        groupName = parts[2]
+        deviceName = parts[3]
+        action = None
+        if len(parts) > 4:
+            action = parts[4]
+            
+        if deviceType == 'scene' and u['values']['state'] == 'on':
             self.updateSceneSwitches(device)
-        elif parts[3] == 'bri':
+        elif action is not None and action == 'bri':
             self.updateDimmer(device, u['values']['dimlevel'])
     
     def updateSceneSwitches(self, device):

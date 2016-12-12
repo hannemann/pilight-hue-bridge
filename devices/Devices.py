@@ -94,7 +94,7 @@ class Devices():
                 self.groups[config['group']].activateScene(config['name'])
                 
             if 'group' == config['type'] and 'bri' == config['action']:
-                self.groups[config['group']].dim(device, dimlevel)
+                self.groups[config['group']].dim(dimlevel)
                 
             if 'light' == config['type'] and 'bri' == config['action']:
                 
@@ -110,9 +110,15 @@ class Devices():
     def updateDevices(self, module = None):
     
         if isinstance(module, HueSender):
-            self.daemon.debug('TODO: parse hue updates')
+            self.updateHueDevices()
             
-            
+    
+    def updateHueDevices(self):
+        
+        for group in self.daemon.hue.groups:
+            if group.name in self.groups:
+                self.groups[group.name].applyHueUpdates()
+    
     def getPilightDevice(self, device):
         pilightConfig = device.split('_')
         type = pilightConfig[1]

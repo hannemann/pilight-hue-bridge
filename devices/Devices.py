@@ -23,10 +23,10 @@ class Devices():
         config = self.getUpdateConfig(u)
         if config is not False:            
             """
-            """
             self.daemon.debug(config)
             self.daemon.debug(config['state'])
             self.daemon.debug(config['dimlevel'])
+            """
             if 'scene' == config['type']:
                 """ process scene """
                 self.processScene(config)

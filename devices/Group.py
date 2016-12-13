@@ -43,6 +43,7 @@ class Group(object):
         scene = self.getScene(name)
         if scene is not None:
             activate = scene.name
+            self._state = 'on'
             for scene in self.scenes:
                 if scene == activate:
                     self.scenes[scene].state = 'on'

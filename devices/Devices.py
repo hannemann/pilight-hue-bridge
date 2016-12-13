@@ -1,82 +1,30 @@
 from HueSender import HueSender
 from Pilight import Pilight
-from Scene import Scene
-from Group import Group
-from Light import Light
+from DeviceParser import DeviceParser
 
 class Devices():
     
     devices = {}
     
     def __init__(self, daemon):
-        
+        """ initialize """
         self.groups = {}
         self.scenes = {}
         self.lights = {}
         
-        self.pilightDevices = {
-            'groups':{},
-            'lights':{}
-        }
-        
         self.daemon = daemon
+        self.parser = DeviceParser(self.daemon)
         self.daemon.debug('Devices container initialized')
         
     def initDevices(self):
-        
-        self.initPilight()        
-        self.initGroups()
-        
-        for hueScene in self.daemon.hue.scenes:
-            
-            for group in self.groups:
-                if self.canAddSceneToGroup(group, hueScene):
-                    self.initScene(
-                        group,
-                        self.pilightDevices['groups'][group]['scenes'][hueScene.name],
-                        hueScene
-                    )
-                    break
-
-        for light in self.daemon.hue.lights:
-            if self.canAddLight(light.name):
-                self.initLight(self.pilightDevices['lights'][light.name], light)
-            
-        #self.daemon.debug(self.lights)
-
-    def initLight(self, pilight, hue):
-        light = Light(self.daemon, pilight, hue)
-        self.lights[hue.name] = light
-    
-    def initPilight(self):
-        for device in self.daemon.pilight.devices:
-            if device[:4] == 'hue_':
-                pilightDevice = self.getPilightDevice(device)
-                group = pilightDevice['group']
-                name = pilightDevice['hueName']
-                if 'scene' == pilightDevice['type']:
-                    self.pilightDevices['groups'][group]['scenes'][name] = pilightDevice
-                if 'light' == pilightDevice['type']:
-                    self.pilightDevices['lights'][name] = pilightDevice
-                    
-        #self.daemon.debug(self.pilightDevices)
-    
-    def initGroups(self):
-        for group in self.daemon.hue.groups:
-            self.groups[group.name] = Group(self.daemon, group)
-                
-    def initScene(self, group, pilightScene, hueScene):
-        name = group + '_' + pilightScene['hueName']
-        self.groups[group].addScene(
-            pilightScene['hueName'],
-            Scene(self.daemon, name, pilightScene, hueScene)
-        )
+        """ initialize devices """
+        self.parser.execute()
 
     def update(self, u):
-        
+        """ process device updates """
         device = u['devices'][0]
         if 'hue_' == device[:4]:
-            config = self.parseDeviceName(device)
+            config = self.parser.parseDeviceName(device)
             
             values = None
             state = None
@@ -89,97 +37,69 @@ class Devices():
                     
                 if 'dimlevel' in values:
                     dimlevel = u['values']['dimlevel']
+                    
+            config['state'] = state
+            config['dimlevel'] = dimlevel
             
             """
-            self.daemon.debug(config)
-            self.daemon.debug(state)
-            self.daemon.debug(dimlevel)
             """
+            self.daemon.debug(config)
+            self.daemon.debug(config['state'])
+            self.daemon.debug(config['dimlevel'])
             if 'scene' == config['type']:
                 """ process scene """
-                if 'toggle' == config['action'] and 'on' == state:
-                    
-                    self.daemon.debug('Deviceaction: Activate scene ' + config['name'])
-                    self.groups[config['group']].activateScene(config['name'])
+                self.processScene(config)
                 
             if 'group' == config['type']:
                 """ process group """
-                if 'bri' == config['action'] and dimlevel is not None:
-                    
-                    self.daemon.debug('Deviceaction: Dim group ' + config['group'] + ' to ' + str(dimlevel))
-                    self.groups[config['group']].dim(device, dimlevel)
-                    
-                if 'bri' == config['action'] and state is not None and dimlevel is None:
-                    
-                    self.daemon.debug('Deviceaction: Switch group ' + config['group'] + ' ' + state)
-                    self.groups[config['group']].state = state
+                self.processGroup(config, device)
                 
             if 'light' == config['type'] and 'bri' == config['action']:
                 """ process light """
-                if dimlevel is not None:
-                    self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(dimlevel))
-                    self.lights[config['name']].dim(dimlevel)
-                    
-                if config['transitiontime'] is not None and 'on' == state:
-                    self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
-                    self.lights[config['name']].setTransition(config)
-                    
-                if 'off' == state:
-                    self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' off')
-                    self.lights[config['name']].state = 'off'
+                self.processLight(config)
     
     def updateDevices(self, module = None):
-    
+        """ process config updates """
         if isinstance(module, HueSender):
             self.daemon.debug('TODO: parse hue updates')
             
+    def processScene(self, config):
+        """ process scene """
+        if 'toggle' == config['action'] and 'on' == config['state']:
             
-    def getPilightDevice(self, device):
-        pilightConfig = device.split('_')
-        type = pilightConfig[1]
-        group = pilightConfig[2]
-        name = pilightConfig[3]
-        if group not in self.pilightDevices['groups']:
-            self.addPilightGroup(group)
-        return {
-            "type": type,
-            "hueName": name,
-            "pilightName": device,
-            "group": group
-        }
-        
-    def parseDeviceName(self, device):
-        maxLen = 8
-        config = device.split('_')
-        config = config + [None] * (maxLen - len(config))
-        hue, type, group, name, action, fromBri, toBri, tr = config
-        return {
-            "type": type,
-            "group": group,
-            "name": name,
-            "action": action,
-            "fromBri": fromBri,
-            "toBri": toBri,
-            "transitiontime": tr
-        }
-    
-    def addPilightGroup(self, group):
-        self.pilightDevices['groups'][group] = {
-            "scenes":{}
-        }
-    
-    def canAddLight(self, hueLight):
-        return hueLight in self.pilightDevices['lights']
-    
-    def canAddSceneToGroup(self, groupName, hueScene):
-        return self.groups[groupName].hasLights(hueScene.lights) and self.hasPilightScene(groupName, hueScene.name)
-        
-    def hasPilightScene(self, groupName, sceneName):
-        return sceneName in self.pilightDevices['groups'][groupName]['scenes']
-    
-    
-    
-    
+            self.daemon.debug('Deviceaction: Activate scene ' + config['name'])
+            self.groups[config['group']].activateScene(config['name'])
+            
+    def processGroup(self, config, device):
+        """ process group """
+        if 'bri' == config['action'] and config['dimlevel'] is not None:
+            
+            self.daemon.debug('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
+            self.groups[config['group']].dim(device, config['dimlevel'])
+            
+        if 'bri' == config['action'] and config['state'] is not None and config['dimlevel'] is None:
+            
+            if self.groups[config['group']].state != config['state']:
+                self.daemon.debug('Deviceaction: Switch group ' + config['group'] + ' ' + config['state'])
+                self.groups[config['group']].state = config['state']
+            
+    def processLight(self, config):
+        """ process light """
+        if config['dimlevel'] is not None:
+            self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
+            self.lights[config['name']].dim(config['dimlevel'])
+            
+        if config['transitiontime'] is not None and 'on' == config['state']:
+            self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
+            self.lights[config['name']].setTransition(config)
+            
+        if 'off' == config['state']:
+            self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' off')
+            self.lights[config['name']].state = 'off'
+
+
+
+
     
     
     

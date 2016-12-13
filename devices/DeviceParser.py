@@ -57,7 +57,10 @@ class DeviceParser(object):
     def initLight(self, pilight, light):
         """ initialize light """
         light = Light(self.daemon, pilight, light)
-        self.daemon.devices.lights[light.name] = light
+        self.daemon.devices.groups[pilight['group']].addLight(
+            pilight['name'], light
+        )
+        #self.daemon.devices.lights[light.name] = light
                 
     def initScene(self, group, pilightScene, hueScene):
         """ initialize scene """
@@ -120,7 +123,8 @@ class DeviceParser(object):
     
     def canAddSceneToGroup(self, groupName, hueScene):
         """ can add scene to group? """
-        return self.daemon.devices.groups[groupName].hasLights(hueScene.lights) and self.hasPilightScene(groupName, hueScene.name)
+        return self.daemon.devices.groups[groupName].hasLights(hueScene.lights) \
+               and self.hasPilightScene(groupName, hueScene.name)
         
     def hasPilightScene(self, groupName, sceneName):
         """ has pilight scene? """

@@ -89,27 +89,29 @@ class Devices():
             
     def processLight(self, config):
         """ process light """
+        light = self.groups[config['group']].lights[config['name']]
+        
         if 'bri' == config['action']:
             if config['dimlevel'] is not None:
                 self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
-                self.lights[config['name']].dim(config['dimlevel'])
+                light.dim(config['dimlevel'])
                 
             elif config['state'] is not None:
                 self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
-                self.lights[config['name']].state = config['state']
+                light.state = config['state']
         
         if 'transition' == config['action']:
             if 'on' == config['state']:
                 self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
-                self.lights[config['name']].setTransition(config)
+                light.setTransition(config)
                 
             elif 'off' == config['state'] is not None:
                 self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
-                self.lights[config['name']].state = config['state']
+                light.state = config['state']
         
         if 'toggle' == config['action'] and config['state'] is not None:
             self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
-            self.lights[config['name']].state = config['state']
+            light.state = config['state']
 
 
 

@@ -4,14 +4,15 @@ from Dimmable import Dimmable
 
 class Group(Dimmable):
     
-    scenes = {}
-    activeScene = None
     lightName = 'all'
     type = 'group'
 
     def __init__(self, daemon, hue):
         """ initialize """
-        Dimmable.__init__(self, daemon, hue)
+        Dimmable.__init__(self, daemon, hue)    
+        self.scenes = {}
+        self.lights = {}
+        self.activeScene = None
         self.groupId = hue.group_id
         self.groupName = self.name
         self.initPilightDevice()
@@ -37,6 +38,21 @@ class Group(Dimmable):
         
         return None
     
+    def addLight(self, name, light):
+        """ add light """
+        self.lights[name] = light;
+        
+    def hasLight(self, name):
+        """ has light """
+        return name in self.lights
+    
+    def getLight(self, name):
+        """ retrieve light """
+        if self.hasLight(name):
+            return self.lights[name]
+        
+        return None
+    
     def activateScene(self, name):
         """ activate scene """
         scene = self.getScene(name)
@@ -48,6 +64,13 @@ class Group(Dimmable):
                     self.activeScene = name
                 else:
                     self.scenes[scene].state = 'off'
+                    
+    def dim(self, dimlevel):
+        """ dim hue device """
+        Dimmable.dim(self, dimlevel)
+        
+        for light in self.lights.values():
+            light.updatePilightDevice(dimlevel)
                     
         
         

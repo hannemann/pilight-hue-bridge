@@ -1,16 +1,6 @@
 
 class Switchable(object):
     
-    pilightDevice = None
-    pilightDeviceName = ''
-    bri = None
-        
-    """ flag if we don't want to set hue
-        because its already switched off
-        e.g. by dim action
-    """
-    lockHue = False
-    
     def __init__(self, daemon, hue):
         """ initialize """
         self.daemon = daemon
@@ -22,6 +12,17 @@ class Switchable(object):
             self.bri = hueValues['action']['bri']
         elif 'state' in hueValues and 'bri' in hueValues['state']:
             self.bri = hueValues['state']['bri']
+        else:
+            self.bri = None
+        
+        self.pilightDevice = None
+        self.pilightDeviceName = ''
+        
+        """ flag if we don't want to set hue
+            because its already switched off
+            e.g. by dim action
+        """
+        self.lockHue = False
         
         self._state = 'on' if hue.on else 'off' 
         

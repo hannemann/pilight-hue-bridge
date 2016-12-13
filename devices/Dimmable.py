@@ -1,8 +1,11 @@
 from Switchable import Switchable
 
 class Dimmable(Switchable):
-
-    dimlevel = None
+    
+    def __init__(self, daemon, hue):
+        """ initialize """
+        Switchable.__init__(self, daemon, hue)
+        self.dimlevel = None
         
     def initPilightDevice(self):
         """ initzialize pilight device """

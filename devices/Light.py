@@ -16,7 +16,7 @@ class Light(Dimmable):
         #self.daemon.debug(self.name)
         
     def setTransition(self, config):
-
+        """ apply transition """
         self._state = 'on'
         fromBri = int(config['fromBri'])
         toBri = int(config['toBri'])
@@ -36,6 +36,20 @@ class Light(Dimmable):
         }
         self.hue._set(message)
         
+    def updatePilightDevice(self, dimlevel):
+        """ update pilight device to reflect hue state """
+        if self.pilightDevice is not None:
+            self.lockHue = True
+            message = {
+                "action":"control",
+                "code":{
+                    "device":self.pilightDeviceName,
+                    "values": {
+                        "dimlevel": dimlevel
+                    }
+                }
+            }
+            self.daemon.pilight.sendMessage(message)
         
         
         

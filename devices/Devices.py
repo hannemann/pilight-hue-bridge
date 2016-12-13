@@ -42,10 +42,10 @@ class Devices():
             config['dimlevel'] = dimlevel
             
             """
-            """
             self.daemon.debug(config)
             self.daemon.debug(config['state'])
             self.daemon.debug(config['dimlevel'])
+            """
             if 'scene' == config['type']:
                 """ process scene """
                 self.processScene(config)

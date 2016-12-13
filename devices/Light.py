@@ -16,7 +16,7 @@ class Light(object):
     
     @state.setter
     def state(self, value):
-        if value in ['on', 'off'] and value != self.state:
+        if value in ['on', 'off']:
             self._state = value
             self.hueDevice.on = self.state == 'on'
         

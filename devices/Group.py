@@ -35,7 +35,7 @@ class Group(object):
     
     @state.setter
     def state(self, value):
-        if value in ['on', 'off'] and self.state != value:
+        if value in ['on', 'off']:
             self._state = value
             self.hue.bridge.set_group(self.groupId, 'on', value == 'on')
     

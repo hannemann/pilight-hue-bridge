@@ -90,21 +90,38 @@ class Devices():
                 if 'dimlevel' in values:
                     dimlevel = u['values']['dimlevel']
             
+            """
+            self.daemon.debug(config)
+            self.daemon.debug(state)
+            self.daemon.debug(dimlevel)
+            """
             if 'scene' == config['type'] and 'toggle' == config['action'] and 'on' == state:
+                
+                self.daemon.debug('Deviceaction: Activate scene ' + config['name'])
                 self.groups[config['group']].activateScene(config['name'])
                 
-            if 'group' == config['type'] and 'bri' == config['action']:
+            if 'group' == config['type'] and 'bri' == config['action'] and dimlevel is not None:
+                
+                self.daemon.debug('Deviceaction: Dim group ' + config['group'] + ' to ' + str(dimlevel))
                 self.groups[config['group']].dim(device, dimlevel)
+                
+            if 'group' == config['type'] and 'off' == state:
+                
+                self.daemon.debug('Deviceaction: Switch group ' + config['group'] + ' off')
+                self.groups[config['group']].state = 'off'
                 
             if 'light' == config['type'] and 'bri' == config['action']:
                 
                 if dimlevel is not None:
+                    self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(dimlevel))
                     self.lights[config['name']].dim(dimlevel)
                     
                 if config['transitiontime'] is not None and 'on' == state:
+                    self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
                     self.lights[config['name']].setTransition(config)
                     
                 if 'off' == state:
+                    self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' off')
                     self.lights[config['name']].state = 'off'
     
     def updateDevices(self, module = None):

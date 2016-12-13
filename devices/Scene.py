@@ -27,18 +27,17 @@ class Scene(object):
     @state.setter
     def state(self, value):
         if value in ['on', 'off']:
-            if self._state != value:
-                self._state = value
-                message = {
-                    "action":"control",
-                    "code":{
-                        "device":self.pilightName,
-                        "state":self._state
-                    }
+            self._state = value
+            message = {
+                "action":"control",
+                "code":{
+                    "device":self.pilightName,
+                    "state":self._state
                 }
-                self.daemon.pilight.sendMessage(message)
-                if 'on' == self._state:
-                    self.bridge.activate_scene(self.groupId, self.sceneId)
+            }
+            self.daemon.pilight.sendMessage(message)
+            if 'on' == self._state:
+                self.bridge.activate_scene(self.groupId, self.sceneId)
     
     def update(self):
         self.daemon.debug('update scene ' + self.name)

@@ -1,78 +1,66 @@
 import time
+from Switchable import Switchable
+from Dimmable import Dimmable
 
-class Group(object):
+class Group(Dimmable):
 
-    def __init__(self, daemon, group):
-        self.daemon = daemon
-        self.hue = daemon.hue
-        self.name = group.name
-        self.lights = group.lights
-        self.hueGroup = group
-        self.groupId = group.group_id
-        self._state = 'on' if group.on else 'off'
+    def __init__(self, daemon, hue):
+        """ initialize """
+        Dimmable.__init__(self, daemon, hue)
+        self.lights = hue.lights
+        self.groupId = hue.group_id
+        self._state = 'on' if hue.on else 'off'
+        
+        hueValues = self.hue._get()
+        self.bri = hueValues['action']['bri']
+        
+        self.pilightDeviceName = 'hue_group_' + self.name + '_all_bri'
+        self.initPilightDevice()
+        if self.pilightDevice is not None:
+            self.sync()
         
         self.scenes = {}
+        self.activeScene = None
         self.lightIds = frozenset(light.light_id for light in self.lights)
         
+        #self.daemon.debug(self.pilightDevice)
+        
     def hasLights(self, lights):
+        """ has lights
+        """
         return len(self.lights) == len(self.lightIds.intersection(lights))
     
     def addScene(self, name, scene):
+        """ add scene
+        """
         self.scenes[name] = scene;
         
     def hasScene(self, name):
+        """ has scene
+        """
         return name in self.scenes
     
     def getScene(self, name):
+        """ retrieve scene
+        """
         if self.hasScene(name):
             return self.scenes[name]
         
         return None
     
-    @property
-    def state(self):
-        return self._state
-    
-    @state.setter
-    def state(self, value):
-        if value in ['on', 'off']:
-            self._state = value
-            self.hue.bridge.set_group(self.groupId, 'on', value == 'on')
-    
     def activateScene(self, name):
+        """ activate scene
+        """
         scene = self.getScene(name)
         if scene is not None:
-            activate = scene.name
             self._state = 'on'
             for scene in self.scenes:
-                if scene == activate:
+                if scene == name:
                     self.scenes[scene].state = 'on'
+                    self.activeScene = name
                 else:
                     self.scenes[scene].state = 'off'
                     
-                    
-    def dim(self, device, dimlevel):
-        
-        if dimlevel == 0:
-            message = {
-                "action":"control",
-                "code":{
-                    "device":device,
-                    "state":"off"
-                }
-            }
-            self.daemon.pilight.sendMessage(message)        
-        
-        param = {
-            "bri": dimlevel if dimlevel > 0 else 1
-        }
-        
-        state = 'on' if dimlevel > 0 else 'off'
-        if state != self.state:
-            param['on'] = state == 'on'
-            
-        self._state = state
-        self.hue.bridge.set_group(self.groupId, param)
         
         
         

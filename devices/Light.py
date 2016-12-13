@@ -1,24 +1,17 @@
+from Switchable import Switchable
+from Dimmable import Dimmable
 import time
 
-class Light(object):
+class Light(Dimmable):
     
     def __init__(self, daemon, pilight, hue):
-        
+        """ initialize """
+        Dimmable.__init__(self, daemon, hue)
         self.daemon = daemon
-        self.hue = daemon.hue
-        self.pilightDevice = pilight
-        self.hueDevice = hue
+        #self.pilightDevice = pilight
         self._state = 'on' if hue.on else 'off'
         
-    @property
-    def state(self):
-        return self._state
-    
-    @state.setter
-    def state(self, value):
-        if value in ['on', 'off']:
-            self._state = value
-            self.hueDevice.on = self.state == 'on'
+        self.daemon.debug(self.name)
         
     def setTransition(self, config):
 
@@ -30,8 +23,7 @@ class Light(object):
             "on": True,
             "bri": fromBri
         }
-        self.daemon.debug(message)
-        self.hue.bridge.set_light(self.hueDevice.light_id, message)
+        self.hue._set(message)
         
         time.sleep(.5)
         
@@ -40,8 +32,7 @@ class Light(object):
             "transitiontime": tt,
             "on": toBri > 0
         }
-        self.daemon.debug(message)
-        self.hue.bridge.set_light(self.hueDevice.light_id, message)
+        self.hue._set(message)
         
         
         

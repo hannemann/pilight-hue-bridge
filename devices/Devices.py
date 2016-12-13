@@ -4,8 +4,6 @@ from DeviceParser import DeviceParser
 
 class Devices():
     
-    devices = {}
-    
     def __init__(self, daemon):
         """ initialize """
         self.groups = {}
@@ -22,6 +20,32 @@ class Devices():
 
     def update(self, u):
         """ process device updates """
+        config = self.getUpdateConfig(u)
+        if config is not False:            
+            """
+            """
+            self.daemon.debug(config)
+            self.daemon.debug(config['state'])
+            self.daemon.debug(config['dimlevel'])
+            if 'scene' == config['type']:
+                """ process scene """
+                self.processScene(config)
+                
+            if 'group' == config['type']:
+                """ process group """
+                self.processGroup(config)
+                
+            if 'light' == config['type']:
+                """ process light """
+                self.processLight(config)
+    
+    def updateDevices(self, module = None):
+        """ process config updates """
+        if isinstance(module, HueSender):
+            self.daemon.debug('TODO: parse hue updates')
+            
+    def getUpdateConfig(self, u):
+        """ parse update """
         device = u['devices'][0]
         if 'hue_' == device[:4]:
             config = self.parser.parseDeviceName(device)
@@ -40,28 +64,8 @@ class Devices():
                     
             config['state'] = state
             config['dimlevel'] = dimlevel
-            
-            """
-            self.daemon.debug(config)
-            self.daemon.debug(config['state'])
-            self.daemon.debug(config['dimlevel'])
-            """
-            if 'scene' == config['type']:
-                """ process scene """
-                self.processScene(config)
-                
-            if 'group' == config['type']:
-                """ process group """
-                self.processGroup(config, device)
-                
-            if 'light' == config['type'] and 'bri' == config['action']:
-                """ process light """
-                self.processLight(config)
-    
-    def updateDevices(self, module = None):
-        """ process config updates """
-        if isinstance(module, HueSender):
-            self.daemon.debug('TODO: parse hue updates')
+            return config
+        return False
             
     def processScene(self, config):
         """ process scene """
@@ -70,12 +74,12 @@ class Devices():
             self.daemon.debug('Deviceaction: Activate scene ' + config['name'])
             self.groups[config['group']].activateScene(config['name'])
             
-    def processGroup(self, config, device):
+    def processGroup(self, config):
         """ process group """
         if 'bri' == config['action'] and config['dimlevel'] is not None:
             
             self.daemon.debug('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
-            self.groups[config['group']].dim(device, config['dimlevel'])
+            self.groups[config['group']].dim(config['dimlevel'])
             
         if 'bri' == config['action'] and config['state'] is not None and config['dimlevel'] is None:
             
@@ -85,17 +89,22 @@ class Devices():
             
     def processLight(self, config):
         """ process light """
-        if config['dimlevel'] is not None:
-            self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
-            self.lights[config['name']].dim(config['dimlevel'])
-            
-        if config['transitiontime'] is not None and 'on' == config['state']:
-            self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
-            self.lights[config['name']].setTransition(config)
-            
-        if 'off' == config['state']:
-            self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' off')
-            self.lights[config['name']].state = 'off'
+        if 'bri' == config['action']:
+            if config['dimlevel'] is not None:
+                self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
+                self.lights[config['name']].dim(config['dimlevel'])
+                
+            elif config['transitiontime'] is not None and 'on' == config['state']:
+                self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
+                self.lights[config['name']].setTransition(config)
+                
+            elif config['state'] is not None:
+                self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
+                self.lights[config['name']].state = config['state']
+                
+        if 'toggle' == config['action'] and config['state'] is not None:
+            self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
+            self.lights[config['name']].state = config['state']
 
 
 

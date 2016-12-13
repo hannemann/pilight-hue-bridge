@@ -25,9 +25,9 @@ class PilightHueBridge(object):
         
         if self.devicesInitialized is False:
             
-            if isinstance(module, Pilight):
+            if 'Pilight' in self.modules and isinstance(module, Pilight):
                 self.modules.remove('Pilight')
-            elif isinstance(module, HueSender):
+            elif 'HueSender' in self.modules and isinstance(module, HueSender):
                 self.modules.remove('HueSender')
                 
             if len(self.modules) == 0:

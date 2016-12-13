@@ -4,12 +4,12 @@ from DeviceParser import DeviceParser
 
 class Devices():
     
-    def __init__(self, daemon):
-        """ initialize """
-        self.groups = {}
-        self.scenes = {}
-        self.lights = {}
+    groups = {}
+    scenes = {}
+    lights = {}
         
+    def __init__(self, daemon):
+        """ initialize """        
         self.daemon = daemon
         self.parser = DeviceParser(self.daemon)
         self.daemon.debug('Devices container initialized')
@@ -94,14 +94,19 @@ class Devices():
                 self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
                 self.lights[config['name']].dim(config['dimlevel'])
                 
-            elif config['transitiontime'] is not None and 'on' == config['state']:
-                self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
-                self.lights[config['name']].setTransition(config)
-                
             elif config['state'] is not None:
                 self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
                 self.lights[config['name']].state = config['state']
+        
+        if 'transition' == config['action']:
+            if 'on' == config['state']:
+                self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
+                self.lights[config['name']].setTransition(config)
                 
+            elif 'off' == config['state'] is not None:
+                self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
+                self.lights[config['name']].state = config['state']
+        
         if 'toggle' == config['action'] and config['state'] is not None:
             self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
             self.lights[config['name']].state = config['state']

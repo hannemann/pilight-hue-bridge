@@ -19,10 +19,12 @@ class Scene(object):
     
     @property
     def state(self):
+        """ get state """
         return self._state
     
     @state.setter
     def state(self, value):
+        """ set state """
         if value in ['on', 'off']:
             self._state = value
             message = {
@@ -37,6 +39,7 @@ class Scene(object):
                 self.bridge.activate_scene(self.groupId, self.sceneId)
     
     def update(self):
+        """ update """
         self.daemon.debug('update scene ' + self.name)
         
         

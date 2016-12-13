@@ -1,30 +1,30 @@
 from Switchable import Switchable
 
-
 class Dimmable(Switchable):
-    
-    def __init__(self, daemon, hue):
-        """ initialize """
-        Switchable.__init__(self, daemon, hue)
-        
-        self.dimlevel = None
+
+    dimlevel = None
         
     def initPilightDevice(self):
         """ initzialize pilight device """
-        Switchable.initPilightDevice(self)
+        Switchable.initPilightDevice(self, skipSync = True)
         
         if self.pilightDevice is not None:
-            self.dimlevel = self.pilightDevice['dimlevel']
+            if 'dimlevel' in self.pilightDevice:
+                self.dimlevel = self.pilightDevice['dimlevel']
             if self.dimlevel != self.bri or self.pilightDevice['state'] != self.state:
-                self.state = self.pilightDevice['state']
+                self._state = self.pilightDevice['state']
+                
+        self.sync()
     
     @Switchable.state.setter
     def state(self, value):
         """ set state """
         Switchable.state.fset(self, value)
+        
         if value in ['on', 'off']:
                 
             if self.pilightDevice is not None and 'off' == self._state:
+        
                 self._switchPilightDeviceOff()
         
     def _switchPilightDeviceOff(self):

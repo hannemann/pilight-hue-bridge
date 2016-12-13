@@ -1,27 +1,46 @@
 
 class Switchable(object):
     
+    pilightDevice = None
+    pilightDeviceName = ''
+    bri = None
+        
+    """ flag if we don't want to set hue
+        because its already switched off
+        e.g. by dim action
+    """
+    lockHue = False
+    
     def __init__(self, daemon, hue):
         """ initialize """
         self.daemon = daemon
         self.hue = hue
         self.name = hue.name
         
-        self.pilightDevice = None
-        self.pilightDeviceName = ''
+        hueValues = self.hue._get()
+        if 'action' in hueValues and 'bri' in hueValues['action']:
+            self.bri = hueValues['action']['bri']
+        elif 'state' in hueValues and 'bri' in hueValues['state']:
+            self.bri = hueValues['state']['bri']
         
-        self._state = None
+        self._state = 'on' if hue.on else 'off' 
         
-        """ flag if we don't want to set hue
-            because its already switched off
-            e.g. by dim action
-        """
-        self.lockHue = False
-        
-    def initPilightDevice(self):
+    def initPilightDevice(self, skipSync = False):
         """ initialize pilight device """
+        
+        self.pilightDeviceName = '_'.join([
+            'hue',
+            self.type,
+            self.groupName,
+            self.lightName,
+            'bri'
+        ])
+        
         if self.pilightDeviceName in self.daemon.pilight.devices:
             self.pilightDevice = self.daemon.pilight.devices[self.pilightDeviceName]
+        
+        if skipSync is not False:
+            self.sync()
             
     @property
     def state(self):
@@ -44,7 +63,8 @@ class Switchable(object):
     def sync(self):
         """ synchronize state and dimlevel
         """
-        self.hue._set(self.getSyncParam())
+        if self.pilightDevice is not None:
+            self.hue._set(self.getSyncParam())
         
     def getSyncParam(self):
         """ retrieve sync param """

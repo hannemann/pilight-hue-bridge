@@ -44,7 +44,7 @@ class DeviceParser(object):
                 name = pilightDevice['name']
                 if 'scene' == pilightDevice['type']:
                     self.pilightDevices['groups'][group]['scenes'][name] = pilightDevice
-                if 'light' == pilightDevice['type']:
+                if 'light' == pilightDevice['type']:                    
                     self.pilightDevices['lights'][name] = pilightDevice
                     
         #self.daemon.debug(self.pilightDevices)
@@ -75,11 +75,21 @@ class DeviceParser(object):
         name = pilightConfig[3]
         if group not in self.pilightDevices['groups']:
             self.addPilightGroup(group)
+            
+        pilightConfig = self.daemon.pilight.devices[device]
+        state = None
+        dimlevel = None
+        if 'state' in pilightConfig:
+            state = pilightConfig['state']
+        if 'dimlevel' in pilightConfig:
+            dimlevel = pilightConfig['dimlevel']
         return {
             "type": type,
             "name": name,
             "pilightName": device,
-            "group": group
+            "group": group,
+            "state": state,
+            "dimlevel": dimlevel
         }
         
     def parseDeviceName(self, device):

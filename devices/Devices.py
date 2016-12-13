@@ -95,23 +95,27 @@ class Devices():
             self.daemon.debug(state)
             self.daemon.debug(dimlevel)
             """
-            if 'scene' == config['type'] and 'toggle' == config['action'] and 'on' == state:
+            if 'scene' == config['type']:
+                """ process scene """
+                if 'toggle' == config['action'] and 'on' == state:
+                    
+                    self.daemon.debug('Deviceaction: Activate scene ' + config['name'])
+                    self.groups[config['group']].activateScene(config['name'])
                 
-                self.daemon.debug('Deviceaction: Activate scene ' + config['name'])
-                self.groups[config['group']].activateScene(config['name'])
-                
-            if 'group' == config['type'] and 'bri' == config['action'] and dimlevel is not None:
-                
-                self.daemon.debug('Deviceaction: Dim group ' + config['group'] + ' to ' + str(dimlevel))
-                self.groups[config['group']].dim(device, dimlevel)
-                
-            if 'group' == config['type'] and 'off' == state:
-                
-                self.daemon.debug('Deviceaction: Switch group ' + config['group'] + ' off')
-                self.groups[config['group']].state = 'off'
+            if 'group' == config['type']:
+                """ process group """
+                if 'bri' == config['action'] and dimlevel is not None:
+                    
+                    self.daemon.debug('Deviceaction: Dim group ' + config['group'] + ' to ' + str(dimlevel))
+                    self.groups[config['group']].dim(device, dimlevel)
+                    
+                if 'bri' == config['action'] and state is not None and dimlevel is None:
+                    
+                    self.daemon.debug('Deviceaction: Switch group ' + config['group'] + ' ' + state)
+                    self.groups[config['group']].state = state
                 
             if 'light' == config['type'] and 'bri' == config['action']:
-                
+                """ process light """
                 if dimlevel is not None:
                     self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(dimlevel))
                     self.lights[config['name']].dim(dimlevel)
@@ -172,3 +176,12 @@ class Devices():
         
     def hasPilightScene(self, groupName, sceneName):
         return sceneName in self.pilightDevices['groups'][groupName]['scenes']
+    
+    
+    
+    
+    
+    
+    
+    
+    

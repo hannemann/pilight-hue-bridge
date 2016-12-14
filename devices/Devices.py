@@ -38,11 +38,6 @@ class Devices():
         for name in groups:
             if name in self.groups:
                 self.groups[name].syncWithPilight()
-            
-        lights = self.pilightDevices['lights']
-        for name in lights:
-            light = lights[name]
-            #logger.debug('PUT Light {}: {}'.format(name, light))
 
     def update(self, u):
         """ process device updates """
@@ -116,35 +111,30 @@ class Devices():
     def processLight(self, config):
         """ process light """
         group = self.groups[config['group']]
-        logger.debug('Modifying light ' + config['name'] + ' in group ' + group.name)
+        light = group.lights[config['name']]
+        logger.debug('Modifying light ' + light.name + ' in group ' + group.name)        
         
-        if group.lockLightStates is False:
-            logger.debug(group.name + ' is not locked')
-            light = group.lights[config['name']]
-            
-            if 'bri' == config['action']:
-                if config['dimlevel'] is not None:
-                    logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
-                    light.dimlevel = config['dimlevel']
-                    
-                elif config['state'] is not None:
-                    logger.info(' Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
-                    light.state = config['state']
-            
-            if 'transition' == config['action']:
-                if 'on' == config['state']:
-                    logger.info('Set transtition on light ' + group.name + ' ' + config['name'])
-                    light.setTransition(config)
-                    
-                elif 'off' == config['state'] is not None:
-                    logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
-                    light.state = config['state']
-            
-            if 'toggle' == config['action'] and config['state'] is not None:
+        if 'bri' == config['action']:
+            if config['dimlevel'] is not None:
+                logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
+                light.dimlevel = config['dimlevel']
+                
+            elif config['state'] is not None:
+                logger.info(' Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
+                light.state = config['state']
+        
+        if 'transition' == config['action']:
+            if 'on' == config['state']:
+                logger.info('Set transtition on light ' + group.name + ' ' + config['name'])
+                light.setTransition(config)
+                
+            elif 'off' == config['state'] is not None:
                 logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
                 light.state = config['state']
-        else:
-            logger.debug(group.name + ' is locked')
+        
+        if 'toggle' == config['action'] and config['state'] is not None:
+            logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
+            light.state = config['state']
     
     def logPerformance(self, message):
         if self.perfomanceLogging is True:

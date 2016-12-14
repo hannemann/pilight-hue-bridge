@@ -19,12 +19,10 @@ class Group(Dimmable):
         Dimmable.__init__(self, daemon, hue)
         self.scenes = {}
         self.lights = {}
-        self.lightIds = []
         self.activeScene = None
         self.groupId = hue.group_id
         self.groupName = self.name
         self.initPilightDevice()
-        self.lockLightStates = False
         self.logPerformance('GET init group end')
         
     def hasLights(self, lights):
@@ -98,7 +96,6 @@ class Group(Dimmable):
         """ lightStates example
         {u'1': {u'on': True, u'xy': [0.4871, 0.4892], u'bri': 147}, u'3': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'2': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'5': {u'on': True, u'bri': 1}, u'4': {u'on': True, u'xy': [0.4561, 0.482], u'bri': 109}, u'6': {u'on': True, u'xy': [0.6007, 0.3909], u'bri': 150}, u'9': {u'on': True, u'bri': 33}}
         """
-        #self.lockLightStates = True
         states = self.activeScene.lightStates
         
         for light in self.lights.values():
@@ -110,8 +107,6 @@ class Group(Dimmable):
             light.bri = dimlevel
             logger.debug('Set light {} {}: bri={}, state={}'.format(self.name, light.name, str(light.bri), light._state))
             light.updatePilightDevice(dimlevel)
-        
-        #self.lockLightStates = False
 
     def syncWithPilight(self):
         """ synchronize hue devices with pilight devices """

@@ -16,7 +16,7 @@ class Dimmable(Switchable):
         else:
             self.bri = None
             
-        self.dimlevel = None
+        self._dimlevel = None
         
         """ flag if we don't want to set hue
             because its already dimmed
@@ -30,7 +30,7 @@ class Dimmable(Switchable):
         
         if self.pilightDevice is not None:
             if 'dimlevel' in self.pilightDevice:
-                self.dimlevel = self.pilightDevice['dimlevel']
+                self._dimlevel = self.pilightDevice['dimlevel']
             if self.dimlevel != self.bri or self.pilightDevice['state'] != self.state:
                 self._state = self.pilightDevice['state']
     
@@ -53,8 +53,14 @@ class Dimmable(Switchable):
             }
         }
         self.daemon.pilight.sendMessage(message)
-                    
-    def dim(self, dimlevel):
+    
+    @property
+    def dimlevel(self):
+        """ retrieve dimlevel """
+        return self._dimlevel
+    
+    @dimlevel.setter
+    def dimlevel(self, dimlevel):
         """ dim hue device """
         
         logger.debug('Dimmimg ' + self.type + ' ' + self.name + ' to dimlevel ' + str(dimlevel))
@@ -66,19 +72,18 @@ class Dimmable(Switchable):
         if state != self.state:
             param['on'] = state == 'on'
             
-        logger.debug('self.bri {} is int? {}'.format(self.bri, isinstance(self.bri, int)))
-        logger.debug('dimlevel {} is int? {}'.format(self.dimlevel, isinstance(self.bri, int)))
-        if self.bri != self.dimlevel:
+        if self.bri != dimlevel:
             logger.debug('Dimmimg hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
             self.hue._set(param)
             self.bri = dimlevel
         else:
-            logger.debug('Hue ' + self.type + ' ' + self.name + ' ' + str(self.dimlevel) + ' already applied')
+            logger.debug('Hue ' + self.type + ' ' + self.name + ' ' + str(dimlevel) + ' already applied')
             
         self.state = state
         if self.pilightDevice is not None:
             self.pilightDevice['dimlevel'] = dimlevel
-            self.dimlevel = dimlevel
+            
+        self._dimlevel = dimlevel
                 
     def mustSync(self):
         """ determine if sync is applicable """

@@ -105,7 +105,7 @@ class Devices():
         if 'bri' == config['action'] and config['dimlevel'] is not None:
             
             logger.info('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
-            self.groups[config['group']].dim(config['dimlevel'])
+            self.groups[config['group']].dimlevel = config['dimlevel']
             
         if 'bri' == config['action'] and config['state'] is not None and config['dimlevel'] is None:
             
@@ -125,7 +125,7 @@ class Devices():
             if 'bri' == config['action']:
                 if config['dimlevel'] is not None:
                     logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
-                    light.dim(config['dimlevel'])
+                    light.dimlevel = config['dimlevel']
                     
                 elif config['state'] is not None:
                     logger.info(' Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])

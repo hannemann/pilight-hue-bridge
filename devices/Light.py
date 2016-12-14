@@ -56,7 +56,7 @@ class Light(Dimmable):
                 }
             }
             self.daemon.pilight.sendMessage(message)
-            self.dimlevel = dimlevel
+            self._dimlevel = dimlevel
     
     def logPerformance(self, message):
         if self.perfomanceLogging is True:

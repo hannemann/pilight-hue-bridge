@@ -79,10 +79,11 @@ class Group(Dimmable):
                     self.scenes[scene].state = 'off'
                     
             self.syncPilightLightsWithScene()
-                    
-    def dim(self, dimlevel):
+                
+    @Dimmable.dimlevel.setter
+    def dimlevel(self, dimlevel):
         """ dim hue device """
-        Dimmable.dim(self, dimlevel)
+        Dimmable.dimlevel.fset(self, dimlevel)
         self.syncLightsWithGroup()
             
     def syncLightsWithGroup(self):

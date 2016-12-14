@@ -52,6 +52,30 @@ class Scene(object):
     def update(self):
         """ update """
         logger.info('update scene ' + self.name)
+        
+    def isActive(self, lights):
+
+        if self.hueName == 'Gemuetlich':
+            toMatch = len(self.lightStates)
+            self.daemon.debug(toMatch)
+            for lightId in self.lightStates:
+                hueState = lights[lightId]['state']
+                selfState = self.lightStates[lightId]
+
+                self.daemon.debug(lights[lightId]['name'])
+                self.daemon.debug(hueState)
+                self.daemon.debug(selfState)
+
+                if hueState['on'] == selfState['on'] and hueState['bri'] == selfState['bri']:
+                    if 'xy' in selfState:
+                        if selfState['xy'][0] == hueState['xy'][0] and selfState['xy'][1] == hueState['xy'][1]:
+                            toMatch -= 1
+                    else:
+                        toMatch -= 1
+
+            self.daemon.debug(toMatch)
+            return toMatch == 0
+        return False
     
     def logPerformance(self, message):
         if self.perfomanceLogging is True:

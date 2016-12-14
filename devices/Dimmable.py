@@ -33,8 +33,6 @@ class Dimmable(Switchable):
                 self.dimlevel = self.pilightDevice['dimlevel']
             if self.dimlevel != self.bri or self.pilightDevice['state'] != self.state:
                 self._state = self.pilightDevice['state']
-                
-        self.sync()
     
     @Switchable.state.setter
     def state(self, value):
@@ -42,9 +40,7 @@ class Dimmable(Switchable):
         Switchable.state.fset(self, value)
         
         if value in ['on', 'off']:
-                
             if self.pilightDevice is not None and 'off' == self._state:
-        
                 self._switchPilightDeviceOff()
         
     def _switchPilightDeviceOff(self):
@@ -75,14 +71,14 @@ class Dimmable(Switchable):
         if self.bri != self.dimlevel:
             logger.debug('Dimmimg hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
             self.hue._set(param)
+            self.bri = dimlevel
         else:
             logger.debug('Hue ' + self.type + ' ' + self.name + ' ' + str(self.dimlevel) + ' already applied')
             
-        self.lockState = True
         self.state = state
         if self.pilightDevice is not None:
             self.pilightDevice['dimlevel'] = dimlevel
-        self.bri = dimlevel
+            self.dimlevel = dimlevel
                 
     def mustSync(self):
         """ determine if sync is applicable """

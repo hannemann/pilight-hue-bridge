@@ -12,11 +12,15 @@ class Devices():
     groups = {}
     scenes = {}
     lights = {}
+    pilightDevices = {
+            'groups':{},
+            'lights':{}
+        }
         
     def __init__(self, daemon):
         """ initialize """        
         self.daemon = daemon
-        self.parser = DeviceParser(self.daemon)
+        self.parser = DeviceParser(self)
         logger.info('Devices container initialized')
         
     def initDevices(self):
@@ -24,6 +28,21 @@ class Devices():
         self.logPerformance('GET ============ Start init devices ================')
         self.parser.execute()
         self.logPerformance('GET ============ Stop init devices ================')
+        self.logPerformance('PUT ============ Start sync with pilight ==========')
+        self.syncWithPilight()
+        self.logPerformance('PUT ============ Stop sync with pilight ==========')
+        
+    def syncWithPilight(self):
+        """ sync hue devices with pilight devices """
+        groups = self.pilightDevices['groups']
+        for name in groups:
+            if name in self.groups:
+                self.groups[name].syncWithPilight()
+            
+        lights = self.pilightDevices['lights']
+        for name in lights:
+            light = lights[name]
+            #logger.debug('PUT Light {}: {}'.format(name, light))
 
     def update(self, u):
         """ process device updates """

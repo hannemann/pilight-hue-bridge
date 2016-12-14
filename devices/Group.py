@@ -24,7 +24,6 @@ class Group(Dimmable):
         self.groupId = hue.group_id
         self.groupName = self.name
         self.initPilightDevice()
-        logger.debug(self.pilightDevice)
         self.lockLightStates = False
         self.logPerformance('GET init group end')
         
@@ -47,6 +46,11 @@ class Group(Dimmable):
             return self.scenes[name]
         
         return None
+    
+    def hasActiveScene(self):
+        """ determine if group has active scene """
+        
+        return self.activeScene is not None
     
     def addLight(self, name, light):
         """ add light """
@@ -79,11 +83,14 @@ class Group(Dimmable):
     def dim(self, dimlevel):
         """ dim hue device """
         Dimmable.dim(self, dimlevel)
-        
+        self.syncLightsWithGroup()
+            
+    def syncLightsWithGroup(self):
+        """ synchronize lights with group device """
         for light in self.lights.values():
-            light.bri = dimlevel
-            light._state = 'on' if dimlevel > 0 else 'off'
-            light.updatePilightDevice(dimlevel)
+            light.bri = self.dimlevel
+            light._state = 'on' if self.dimlevel > 0 else 'off'
+            light.updatePilightDevice(self.dimlevel)
             
     def syncPilightLightsWithScene(self):
         """ synchronize pilight devices with light states """
@@ -104,6 +111,26 @@ class Group(Dimmable):
             light.updatePilightDevice(dimlevel)
         
         #self.lockLightStates = False
+
+    def syncWithPilight(self):
+        """ synchronize hue devices with pilight devices """
+        for scene in self.scenes.values():
+            if scene.state == 'on':
+                self.activeScene = scene
+                break;
+                
+        if self.hasActiveScene():
+            self.activeScene.state = 'on'
+        elif self.pilightDevice is not None:
+            self.sync()
+            self.syncLightsWithGroup()
+        else:
+            for light in self.lights.values():
+                logger.debug('PUT Light {}: {}'.format(light.name, light))
+                light.sync()
+            
+    def syncScene(self):
+        """ apply scene """
     
     def logPerformance(self, message):
         if self.perfomanceLogging is True:

@@ -28,12 +28,6 @@ class Switchable(object):
         self.hueState = self._state
         self.name = self.hueValues['name']
         
-        """ flag if we don't want to set hue
-            because its already switched off
-            e.g. by dim action
-        """
-        self.lockState = False
-        
     def initPilightDevice(self, skipSync = False):
         """ initialize pilight device """
         
@@ -47,9 +41,6 @@ class Switchable(object):
         
         if self.pilightDeviceName in self.daemon.pilight.devices:
             self.pilightDevice = self.daemon.pilight.devices[self.pilightDeviceName]
-        
-        if skipSync is not False:
-            self.sync()
             
     @property
     def state(self):
@@ -68,7 +59,6 @@ class Switchable(object):
                 self.hue.on = value == 'on'
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + value)
-                self.lockState = False
     
     def sync(self):
         """ synchronize state and dimlevel """

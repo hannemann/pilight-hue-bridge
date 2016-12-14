@@ -1,4 +1,7 @@
 
+import logging
+
+logger = logging.getLogger('daemon')
 
 class Scene(object):
     
@@ -44,7 +47,7 @@ class Scene(object):
     
     def update(self):
         """ update """
-        self.daemon.debug('update scene ' + self.name)
+        logger.info('update scene ' + self.name)
         
         
         

@@ -1,4 +1,8 @@
 
+import logging
+
+logger = logging.getLogger('daemon')
+
 class Switchable(object):
     
     def __init__(self, daemon, hue):

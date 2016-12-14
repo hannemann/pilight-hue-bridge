@@ -1,6 +1,9 @@
 import time
 from Switchable import Switchable
 from Dimmable import Dimmable
+import logging
+
+logger = logging.getLogger('daemon')
 
 class Group(Dimmable):
     
@@ -16,7 +19,7 @@ class Group(Dimmable):
         self.groupId = hue.group_id
         self.groupName = self.name
         self.initPilightDevice()
-        #self.daemon.debug(self.pilightDevice)
+        logger.debug(self.pilightDevice)
         
     def hasLights(self, lights):
         """ has lights """

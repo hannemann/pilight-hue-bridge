@@ -1,6 +1,9 @@
 from Scene import Scene
 from Group import Group
 from Light import Light
+import logging
+
+logger = logging.getLogger('daemon')
 
 class DeviceParser(object):
     
@@ -32,8 +35,6 @@ class DeviceParser(object):
         for light in self.daemon.hue.lights:
             if self.canAddLight(light.name):
                 self.initLight(self.pilightDevices['lights'][light.name], light)
-            
-        #self.daemon.debug(self.lights)
     
     def initPilightDevices(self):
         """ initialize pilight devices """
@@ -46,8 +47,6 @@ class DeviceParser(object):
                     self.pilightDevices['groups'][group]['scenes'][name] = pilightDevice
                 if 'light' == pilightDevice['type']:                    
                     self.pilightDevices['lights'][name] = pilightDevice
-                    
-        #self.daemon.debug(self.pilightDevices)
     
     def initGroups(self):
         """ initialize groups """
@@ -60,7 +59,6 @@ class DeviceParser(object):
         self.daemon.devices.groups[pilight['group']].addLight(
             pilight['name'], light
         )
-        #self.daemon.devices.lights[light.name] = light
                 
     def initScene(self, group, pilightScene, hueScene):
         """ initialize scene """

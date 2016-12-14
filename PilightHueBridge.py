@@ -7,6 +7,10 @@ import json
 from Pilight import Pilight
 from HueSender import HueSender
 from devices.Devices import Devices
+import logging
+
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(name)s\t%(levelname)s:\t%(message)s, (%(module)s, %(lineno)d)')
+logger = logging.getLogger('daemon')
 
 class PilightHueBridge(object):
     
@@ -15,11 +19,32 @@ class PilightHueBridge(object):
     devicesInitialized = False
     
     def __init__(self, debugMode = False):
-        self.debugMode = debugMode
+        self.logging = {"mode":"d","d-level":logging.INFO}
+        self.initLogging(debugMode)
         self.pilight = Pilight(self, 5)
         self.hue = HueSender(self)
         self.devices = Devices(self)
-        print('Daemon initialized')
+        logger.info('Daemon initialized')
+        
+    def initLogging(self, debugMode):
+        
+        if debugMode is not False:
+            mode, levels = debugMode.split('-')
+            levels = levels.split(':')
+            
+            for i, m in enumerate(mode):
+                if i < len(levels):
+                    level = levels[i].upper()
+                    if hasattr(logging, level):
+                        level = getattr(logging, level)
+                    else:
+                        level = logging.INFO
+                else:
+                    level = logging.INFO
+                self.logging[m + '-level'] = level
+                
+            self.logging['mode'] = str(mode)
+        logger.setLevel(self.logging['d-level'])
         
     def updateDevices(self, module):
         
@@ -39,16 +64,9 @@ class PilightHueBridge(object):
         
     def proxyUpdate(self, update):
         self.devices.update(update)
-
-    def emit(self, message):
-        print(message)
-
-    def debug(self, message):
-        if self.debugMode is True:
-            self.emit(message)
         
     def dumpJson(self, obj):
-        self.debug(
+        print(
             json.dumps(
                 obj,
                 sort_keys=True,
@@ -58,7 +76,7 @@ class PilightHueBridge(object):
         )  
 
     def run(self):
-        self.emit('Daemon PID: %s' % os.getpid())
+        logger.info('Daemon PID: %s' % os.getpid())
         self.pilight.start()
         self.hue.start()
         while True:
@@ -69,7 +87,7 @@ class PilightHueBridge(object):
             time.sleep(2)    
              
     def shutdown(self, a, b):
-        self.emit('Catched SIGTERM')
+        logger.info('Catched SIGTERM')
         self.pilight.shutdown()
         self.hue.shutdown()
         self.terminate = True   
@@ -77,12 +95,15 @@ class PilightHueBridge(object):
 def usage():
     print '\n\tUsage:\n'
     print '\t\t-h\tHelp'
-    print '\t\t-d\tDebugmode'
+    print '\t\t-d\tDebugmode: modes and levels seperated by -, levels seperated by :'
+    print '\t\t\tmodes: d=main program, a=hue api, p=pilight, h=hue'
+    print '\t\t\tlevels: debug, info, warning, error, critical'
+    print '\t\t\te.g.: -d dpa-debug:info:error to set debug on main program, info on hue api and error on pilight'
     
 if __name__ == "__main__":
     debug = False
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"dh")
+        opts, args = getopt.getopt(sys.argv[1:],"d:h")
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -91,8 +112,8 @@ if __name__ == "__main__":
             usage()
             sys.exit(0)
         if opt == '-d':
-            debug = True
-            
+            debug = arg
+    
     bridge = PilightHueBridge(debug)
     signal.signal(signal.SIGTERM, bridge.shutdown)
     bridge.run()

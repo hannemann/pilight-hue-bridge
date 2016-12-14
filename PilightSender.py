@@ -7,6 +7,9 @@ import struct
 import re
 import json
 import time
+import logging
+
+logger = logging.getLogger('daemon')
 
 class PilightSender():
     
@@ -16,7 +19,7 @@ class PilightSender():
     def __init__(self, pilight):
         self.pilight = pilight
         self.daemon = pilight.daemon
-        self.daemon.debug('pilight sender initialized')
+        logger.info('pilight sender initialized')
     
     def getConfig(self):
         message = {

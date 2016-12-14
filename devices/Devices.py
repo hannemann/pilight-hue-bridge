@@ -1,6 +1,9 @@
 from HueSender import HueSender
 from Pilight import Pilight
 from DeviceParser import DeviceParser
+import logging
+
+logger = logging.getLogger('daemon')
 
 class Devices():
     
@@ -12,7 +15,7 @@ class Devices():
         """ initialize """        
         self.daemon = daemon
         self.parser = DeviceParser(self.daemon)
-        self.daemon.debug('Devices container initialized')
+        logger.info('Devices container initialized')
         
     def initDevices(self):
         """ initialize devices """
@@ -22,11 +25,11 @@ class Devices():
         """ process device updates """
         config = self.getUpdateConfig(u)
         if config is not False:            
-            """
-            self.daemon.debug(config)
-            self.daemon.debug(config['state'])
-            self.daemon.debug(config['dimlevel'])
-            """
+            
+            logger.debug(config)
+            logger.debug(config['state'])
+            logger.debug(config['dimlevel'])
+            
             if 'scene' == config['type']:
                 """ process scene """
                 self.processScene(config)
@@ -42,7 +45,7 @@ class Devices():
     def updateDevices(self, module = None):
         """ process config updates """
         if isinstance(module, HueSender):
-            self.daemon.debug('TODO: parse hue updates')
+            logger.info('TODO: parse hue updates')
             
     def getUpdateConfig(self, u):
         """ parse update """
@@ -71,20 +74,20 @@ class Devices():
         """ process scene """
         if 'toggle' == config['action'] and 'on' == config['state']:
             
-            self.daemon.debug('Deviceaction: Activate scene ' + config['name'])
+            logger.info('Deviceaction: Activate scene ' + config['name'])
             self.groups[config['group']].activateScene(config['name'])
             
     def processGroup(self, config):
         """ process group """
         if 'bri' == config['action'] and config['dimlevel'] is not None:
             
-            self.daemon.debug('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
+            logger.info('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
             self.groups[config['group']].dim(config['dimlevel'])
             
         if 'bri' == config['action'] and config['state'] is not None and config['dimlevel'] is None:
             
             if self.groups[config['group']].state != config['state']:
-                self.daemon.debug('Deviceaction: Switch group ' + config['group'] + ' ' + config['state'])
+                logger.info('Deviceaction: Switch group ' + config['group'] + ' ' + config['state'])
                 self.groups[config['group']].state = config['state']
             
     def processLight(self, config):
@@ -93,24 +96,24 @@ class Devices():
         
         if 'bri' == config['action']:
             if config['dimlevel'] is not None:
-                self.daemon.debug('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
+                logger.info('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
                 light.dim(config['dimlevel'])
                 
             elif config['state'] is not None:
-                self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
+                logger.info('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
                 light.state = config['state']
         
         if 'transition' == config['action']:
             if 'on' == config['state']:
-                self.daemon.debug('Deviceaction: Set transtition on light ' + config['name'])
+                logger.info('Deviceaction: Set transtition on light ' + config['name'])
                 light.setTransition(config)
                 
             elif 'off' == config['state'] is not None:
-                self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
+                logger.info('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
                 light.state = config['state']
         
         if 'toggle' == config['action'] and config['state'] is not None:
-            self.daemon.debug('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
+            logger.info('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
             light.state = config['state']
 
 

@@ -7,13 +7,16 @@ import struct
 import re
 import json
 import time
+import logging
+
+logger = logging.getLogger('daemon')
 
 class PilightReceiver():
 
     def __init__(self, pilight):
         self.pilight = pilight
         self.daemon = pilight.daemon
-        self.daemon.debug('pilight receiver initialized')
+        logger.info('pilight receiver initialized')
             
     def parseConfig(self, c):
         config = c['config'];
@@ -25,4 +28,4 @@ class PilightReceiver():
             self.pilight.rules = self.pilight.config['rules']
         if 'gui' in config:
             self.pilight.gui = self.pilight.config['gui']
-        self.daemon.emit('loaded config from pilight')
+        logger.info('loaded config from pilight')

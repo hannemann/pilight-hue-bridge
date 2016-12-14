@@ -1,6 +1,9 @@
 from Switchable import Switchable
 from Dimmable import Dimmable
 import time
+import logging
+
+logger = logging.getLogger('daemon')
 
 class Light(Dimmable):
     
@@ -13,7 +16,6 @@ class Light(Dimmable):
         self.lightName = self.name
         
         self.initPilightDevice()
-        #self.daemon.debug(self.name)
         
     def setTransition(self, config):
         """ apply transition """

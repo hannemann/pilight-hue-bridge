@@ -1,4 +1,7 @@
 from Switchable import Switchable
+import logging
+
+logger = logging.getLogger('daemon')
 
 class Dimmable(Switchable):
     

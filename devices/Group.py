@@ -81,6 +81,8 @@ class Group(Dimmable):
         Dimmable.dim(self, dimlevel)
         
         for light in self.lights.values():
+            light.bri = dimlevel
+            light._state = 'on' if dimlevel > 0 else 'off'
             light.updatePilightDevice(dimlevel)
             
     def syncPilightLightsWithScene(self):

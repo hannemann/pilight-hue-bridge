@@ -2,20 +2,24 @@
 
 class Scene(object):
     
-    def __init__(self, daemon, name, pilightScene, hueScene):
+    def __init__(self, daemon, name, pilightScene, hue):
         """ initialize """
         self.daemon = daemon
-        self.hue = daemon.hue
         self.pilight = daemon.pilight
-        self.bridge = self.hue.bridge
         
-        self.name = hueScene.name
-        self.sceneId = hueScene.scene_id
+        self.name = hue.name
+        self.sceneId = hue.scene_id
         self.pilightName = pilightScene['pilightName']
         self.groupName = pilightScene['group']
-        self.groupId = self.bridge.get_group_id_by_name(self.groupName)        
+        self.groupId = self.daemon.hue.bridge.get_group_id_by_name(self.groupName)        
         self.pilightDevice = self.pilight.devices[self.pilightName]
         self._state = self.pilightDevice['state']
+        
+        username = self.daemon.hue.bridge.username
+        self.hueSettings = self.daemon.hue.bridge.request(
+            'GET', '/api/' + username + '/scenes/' + self.sceneId
+        )
+        self.lightStates = self.hueSettings['lightstates']
     
     @property
     def state(self):
@@ -36,7 +40,7 @@ class Scene(object):
             }
             self.daemon.pilight.sendMessage(message)
             if 'on' == self._state:
-                self.bridge.activate_scene(self.groupId, self.sceneId)
+                self.daemon.hue.bridge.activate_scene(self.groupId, self.sceneId)
     
     def update(self):
         """ update """

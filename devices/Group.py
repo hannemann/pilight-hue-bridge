@@ -58,18 +58,32 @@ class Group(Dimmable):
         scene = self.getScene(name)
         if scene is not None:
             self._state = 'on'
+            scene.state = 'on'
+            self.activeScene = scene
             for scene in self.scenes:
-                if scene == name:
-                    self.scenes[scene].state = 'on'
-                    self.activeScene = name
-                else:
+                if scene != name:
                     self.scenes[scene].state = 'off'
+                    
+            self.syncPilightLightsWithScene()
                     
     def dim(self, dimlevel):
         """ dim hue device """
         Dimmable.dim(self, dimlevel)
         
         for light in self.lights.values():
+            light.updatePilightDevice(dimlevel)
+            
+    def syncPilightLightsWithScene(self):
+        """ synchronize pilight devices with light states """
+        """ lightStates example
+        {u'1': {u'on': True, u'xy': [0.4871, 0.4892], u'bri': 147}, u'3': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'2': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'5': {u'on': True, u'bri': 1}, u'4': {u'on': True, u'xy': [0.4561, 0.482], u'bri': 109}, u'6': {u'on': True, u'xy': [0.6007, 0.3909], u'bri': 150}, u'9': {u'on': True, u'bri': 33}}
+        """
+        states = self.activeScene.lightStates
+        
+        for light in self.lights.values():
+            time.sleep(0.1)
+            state = states[str(light.hue.light_id)]
+            dimlevel = state['bri'] if state['on'] is True else 0
             light.updatePilightDevice(dimlevel)
                     
         

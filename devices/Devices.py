@@ -45,7 +45,7 @@ class Devices():
     def updateDevices(self, module = None):
         """ process config updates """
         if isinstance(module, HueSender):
-            logger.info('TODO: parse hue updates')
+            logger.debug('TODO: parse hue updates')
             
     def getUpdateConfig(self, u):
         """ parse update """

@@ -29,21 +29,29 @@ class PilightHueBridge(object):
     def initLogging(self, debugMode):
         
         if debugMode is not False:
-            mode, levels = debugMode.split('-')
-            levels = levels.split(':')
+            if '-' in debugMode:
+                mode, levels = debugMode.split('-')
+            else:
+                mode = debugMode
+                levels = 'info'
             
+            if ':' in levels:
+                levels = levels.split(':')
+            else:
+                levels = [levels]
+            
+            level = logging.INFO
             for i, m in enumerate(mode):
                 if i < len(levels):
                     level = levels[i].upper()
                     if hasattr(logging, level):
                         level = getattr(logging, level)
-                    else:
-                        level = logging.INFO
-                else:
-                    level = logging.INFO
                 self.logging[m + '-level'] = level
                 
             self.logging['mode'] = str(mode)
+            
+        #logger.error(self.logging)
+        #sys.exit(0)
         logger.setLevel(self.logging['d-level'])
         
     def updateDevices(self, module):
@@ -98,7 +106,8 @@ def usage():
     print '\t\t-d\tDebugmode: modes and levels seperated by -, levels seperated by :'
     print '\t\t\tmodes: d=main program, a=hue api, p=pilight, h=hue'
     print '\t\t\tlevels: debug, info, warning, error, critical'
-    print '\t\t\te.g.: -d dpa-debug:info:error to set debug on main program, info on hue api and error on pilight'
+    print '\t\t\te.g.:\t-d dpa-debug:info to set debug on main program'
+    print '\t\t\t\tinfo on pilight and info on hue api (because explicit level on a is omitted)'
     
 if __name__ == "__main__":
     debug = False

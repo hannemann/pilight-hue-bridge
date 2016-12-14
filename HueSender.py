@@ -36,7 +36,7 @@ class HueSender(threading.Thread):
         
     def update(self):
         if self.terminate is False:
-            logger.info('fetching updates from bridge')
+            logger.debug('fetching updates from bridge')
             self.scenes = self.bridge.scenes
             self.lights = self.bridge.lights
             self.groups = self.bridge.groups

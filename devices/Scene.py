@@ -34,10 +34,10 @@ class Scene(object):
         return self._state
     
     @state.setter
-    def state(self, value):
+    def state(self, state):
         """ set state """
-        if value in ['on', 'off']:
-            self._state = value
+        if state in ['on', 'off']:
+            self._state = state
             message = {
                 "action":"control",
                 "code":{
@@ -47,14 +47,16 @@ class Scene(object):
             }
             self.daemon.pilight.sendMessage(message)
             if 'on' == self._state:
-                self.daemon.hue.bridge.activate_scene(self.groupId, self.sceneId)
+                success = self.daemon.hue.bridge.activate_scene(self.groupId, self.sceneId)[0]
+                logger.debug('{2}: switch scene {0} {1}'.format(self.name, state, 'Success' if success else 'Error'))
     
     def update(self):
         """ update """
         logger.info('update scene ' + self.name)
         
     def isActive(self, lights):
-
+        """ determine if scene is currently active """
+        # TODO
         if self.hueName == 'Gemuetlich':
             toMatch = len(self.lightStates)
             self.daemon.debug(toMatch)

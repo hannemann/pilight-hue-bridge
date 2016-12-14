@@ -1,4 +1,5 @@
 from Switchable import Switchable
+import time
 import logging
 
 logger = logging.getLogger('daemon')
@@ -18,12 +19,6 @@ class Dimmable(Switchable):
             
         self._dimlevel = None
         
-        """ flag if we don't want to set hue
-            because its already dimmed
-            e.g. by scene action
-        """
-        self.lockBri = False
-        
     def initPilightDevice(self):
         """ initzialize pilight device """
         Switchable.initPilightDevice(self, skipSync = True)
@@ -35,11 +30,11 @@ class Dimmable(Switchable):
                 self._state = self.pilightDevice['state']
     
     @Switchable.state.setter
-    def state(self, value):
+    def state(self, state):
         """ set state """
-        Switchable.state.fset(self, value)
+        Switchable.state.fset(self, state)
         
-        if value in ['on', 'off']:
+        if state in ['on', 'off']:
             if self.pilightDevice is not None and 'off' == self._state:
                 self._switchPilightDeviceOff()
         
@@ -62,7 +57,6 @@ class Dimmable(Switchable):
     @dimlevel.setter
     def dimlevel(self, dimlevel):
         """ dim hue device """
-        
         logger.debug('Dimmimg ' + self.type + ' ' + self.name + ' to dimlevel ' + str(dimlevel))
         param = {
             "bri": dimlevel if dimlevel > 0 else 1
@@ -74,8 +68,10 @@ class Dimmable(Switchable):
             
         if self.bri != dimlevel:
             logger.debug('Dimmimg hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
-            self.hue._set(param)
-            self.bri = dimlevel
+            success = self.hue._set(param)
+            logger.debug('{3}: apply dimlevel {0} to {1} {2}'.format(dimlevel, self.type, self.name, 'Success' if success else 'Error'))
+            if success:
+                self.bri = dimlevel
         else:
             logger.debug('Hue ' + self.type + ' ' + self.name + ' ' + str(dimlevel) + ' already applied')
             
@@ -84,6 +80,29 @@ class Dimmable(Switchable):
             self.pilightDevice['dimlevel'] = dimlevel
             
         self._dimlevel = dimlevel
+        
+    def setTransition(self, config):
+        """ apply transition """
+        self._state = 'on'
+        fromBri = int(config['fromBri'])
+        toBri = int(config['toBri'])
+        tt = int(config['transitiontime'])
+        message = {
+            "on": True,
+            "bri": fromBri
+        }
+        success = self.hue._set(message)
+        logger.debug('{2} apply transition start values to {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error'))
+        
+        time.sleep(.5)
+        
+        message = {
+            "bri": toBri,
+            "transitiontime": tt,
+            "on": toBri > 0
+        }
+        success = self.hue._set(message)
+        logger.debug('{2} applied transition end values to {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error'))
                 
     def mustSync(self):
         """ determine if sync is applicable """

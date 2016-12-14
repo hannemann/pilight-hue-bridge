@@ -21,6 +21,7 @@ class Group(Dimmable):
         self.lights = {}
         self.activeScene = None
         self.groupId = hue.group_id
+        self.id = self.groupId
         self.groupName = self.name
         self.initPilightDevice()
         self.logPerformance('GET init group end')
@@ -75,6 +76,7 @@ class Group(Dimmable):
             for scene in self.scenes:
                 if scene != name:
                     self.scenes[scene].state = 'off'
+                    time.sleep(.2)
                     
             self.syncPilightLightsWithScene()
                 
@@ -122,7 +124,6 @@ class Group(Dimmable):
             self.syncLightsWithGroup()
         else:
             for light in self.lights.values():
-                logger.debug('PUT Light {}: {}'.format(light.name, light))
                 light.sync()
             
     def syncScene(self):

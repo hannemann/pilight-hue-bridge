@@ -48,24 +48,30 @@ class Switchable(object):
         return self._state
     
     @state.setter
-    def state(self, value):
+    def state(self, state):
         """ set state """
-        if value in ['on', 'off']:
-            logger.debug('Switching ' + self.type + ' ' + self.name + ' ' + value)
+        if state in ['on', 'off']:
+            logger.debug('Switching ' + self.type + ' ' + self.name + ' ' + state)
             
-            if self._state != value:
-                logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + value)
-                self._state = value
-                self.hue.on = value == 'on'
+            if self._state != state:
+                logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
+                param = {
+                    "on": state == 'on'
+                }
+                success = 'success' in self.hue._set(param)[0][0]
+                logger.debug('{3}: switch {0} {1} {2}'.format(self.type, self.name, state, 'Success' if success else 'Error'))
+                if success:
+                    self._state = state
             else:
-                logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + value)
+                logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
     
     def sync(self):
         """ synchronize state and dimlevel """
         if self.pilightDevice is not None:
             param = self.getSyncParam()
             if self.mustSync():
-                self.hue._set(param)
+                success = self.hue._set(param)[0][0]
+                logger.debug('{2} synced {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error'))
                 
     def mustSync(self):
         """ determine if sync is applicable """

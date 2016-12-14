@@ -18,30 +18,10 @@ class Light(Dimmable):
         Dimmable.__init__(self, daemon, hue)
         self.groupName = pilight['group']
         self.lightName = self.name
+        self.id = hue.light_id
         
         self.initPilightDevice()
         self.logPerformance('GET init light end')
-        
-    def setTransition(self, config):
-        """ apply transition """
-        self._state = 'on'
-        fromBri = int(config['fromBri'])
-        toBri = int(config['toBri'])
-        tt = int(config['transitiontime'])
-        message = {
-            "on": True,
-            "bri": fromBri
-        }
-        self.hue._set(message)
-        
-        time.sleep(.5)
-        
-        message = {
-            "bri": toBri,
-            "transitiontime": tt,
-            "on": toBri > 0
-        }
-        self.hue._set(message)
         
     def updatePilightDevice(self, dimlevel):
         """ update pilight device to reflect hue state """

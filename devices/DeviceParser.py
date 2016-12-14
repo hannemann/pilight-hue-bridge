@@ -7,6 +7,8 @@ logger = logging.getLogger('daemon')
 
 class DeviceParser(object):
     
+    perfomanceLogging = False
+    
     def __init__(self, daemon):
         """ initialize """
         self.daemon = daemon
@@ -18,23 +20,41 @@ class DeviceParser(object):
         
     def execute(self):
         """ parse configurations """
+        self.logPerformance('GET ========== Start parsing devices ================')
+        self.logPerformance('GET ======== init pilights')
         self.initPilightDevices()        
+        self.logPerformance('GET ======== init pilights end')
+        self.logPerformance('GET ======== init groups')
         self.initGroups()
+        self.logPerformance('GET ======== init groups end')
+
+        self.logPerformance('GET ======== init lights')
+        for light in self.daemon.hue.lights:
+            self.logPerformance('GET ====== init light')
+            hueValues = light._get()
+            if self.canAddLight(hueValues['name']):
+                self.initLight(self.pilightDevices['lights'][hueValues['name']], light, hueValues)
+            self.logPerformance('GET ====== init light end')
+        self.logPerformance('GET ======== init lights end')
         
+        self.logPerformance('GET ======== parse scenes')
         for hueScene in self.daemon.hue.scenes:
             
-            for group in self.daemon.devices.groups:
-                if self.canAddSceneToGroup(group, hueScene):
+            self.logPerformance('GET ====== init scene - iterate devices container scene')
+            for groupName in self.daemon.devices.groups:
+                self.logPerformance('GET ==== init scene - iterate devices container groups')
+                if self.canAddSceneToGroup(groupName, hueScene):
                     self.initScene(
-                        group,
-                        self.pilightDevices['groups'][group]['scenes'][hueScene.name],
+                        groupName,
+                        self.pilightDevices['groups'][groupName]['scenes'][hueScene.name],
                         hueScene
                     )
                     break
-
-        for light in self.daemon.hue.lights:
-            if self.canAddLight(light.name):
-                self.initLight(self.pilightDevices['lights'][light.name], light)
+                self.logPerformance('GET ==== init scene - iterate devices container groups end')
+            self.logPerformance('GET ====== init scene - iterate devices container scene end')
+        self.logPerformance('GET ======== parse scenes end')
+                
+        self.logPerformance('GET ========== Stop parsing devices ================')
     
     def initPilightDevices(self):
         """ initialize pilight devices """
@@ -51,11 +71,12 @@ class DeviceParser(object):
     def initGroups(self):
         """ initialize groups """
         for group in self.daemon.hue.groups:
-            self.daemon.devices.groups[group.name] = Group(self.daemon, group)
+            hueValues = group._get()
+            self.daemon.devices.groups[group.name] = Group(self.daemon, group, hueValues)
 
-    def initLight(self, pilight, light):
+    def initLight(self, pilight, light, hueValues):
         """ initialize light """
-        light = Light(self.daemon, pilight, light)
+        light = Light(self.daemon, pilight, light, hueValues)
         self.daemon.devices.groups[pilight['group']].addLight(
             pilight['name'], light
         )
@@ -65,7 +86,7 @@ class DeviceParser(object):
         name = group + '_' + pilightScene['name']
         self.daemon.devices.groups[group].addScene(
             pilightScene['name'],
-            Scene(self.daemon, name, pilightScene, hueScene)
+            Scene(self.daemon, name, pilightScene, hueScene, group)
         )            
             
     def getPilightDevice(self, device):
@@ -121,12 +142,17 @@ class DeviceParser(object):
     
     def canAddSceneToGroup(self, groupName, hueScene):
         """ can add scene to group? """
+        self.logPerformance('GET === test if device is handled by pilight')
         return self.daemon.devices.groups[groupName].hasLights(hueScene.lights) \
                and self.hasPilightScene(groupName, hueScene.name)
         
     def hasPilightScene(self, groupName, sceneName):
         """ has pilight scene? """
         return sceneName in self.pilightDevices['groups'][groupName]['scenes']
+    
+    def logPerformance(self, message):
+        if self.perfomanceLogging is True:
+            logger.debug(message)
     
     
     

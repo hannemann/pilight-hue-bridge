@@ -5,8 +5,11 @@ logger = logging.getLogger('daemon')
 
 class Scene(object):
     
-    def __init__(self, daemon, name, pilightScene, hue):
+    perfomanceLogging = False
+    
+    def __init__(self, daemon, name, pilightScene, hue, group):
         """ initialize """
+        self.logPerformance('GET == init scene')
         self.daemon = daemon
         self.pilight = daemon.pilight
         
@@ -14,7 +17,7 @@ class Scene(object):
         self.sceneId = hue.scene_id
         self.pilightName = pilightScene['pilightName']
         self.groupName = pilightScene['group']
-        self.groupId = self.daemon.hue.bridge.get_group_id_by_name(self.groupName)        
+        self.groupId = self.daemon.devices.groups[self.groupName].hue.group_id
         self.pilightDevice = self.pilight.devices[self.pilightName]
         self._state = self.pilightDevice['state']
         
@@ -23,6 +26,7 @@ class Scene(object):
             'GET', '/api/' + username + '/scenes/' + self.sceneId
         )
         self.lightStates = self.hueSettings['lightstates']
+        self.logPerformance('GET == init scene end')
     
     @property
     def state(self):
@@ -48,6 +52,10 @@ class Scene(object):
     def update(self):
         """ update """
         logger.info('update scene ' + self.name)
+    
+    def logPerformance(self, message):
+        if self.perfomanceLogging is True:
+            logger.debug(message)
         
         
         

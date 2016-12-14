@@ -8,7 +8,21 @@ class Dimmable(Switchable):
     def __init__(self, daemon, hue):
         """ initialize """
         Switchable.__init__(self, daemon, hue)
+        
+        if 'action' in self.hueValues and 'bri' in self.hueValues['action']:
+            self.bri = self.hueValues['action']['bri']
+        elif 'state' in self.hueValues and 'bri' in self.hueValues['state']:
+            self.bri = self.hueValues['state']['bri']
+        else:
+            self.bri = None
+            
         self.dimlevel = None
+        
+        """ flag if we don't want to set hue
+            because its already dimmed
+            e.g. by scene action
+        """
+        self.lockBri = False
         
     def initPilightDevice(self):
         """ initzialize pilight device """
@@ -46,6 +60,8 @@ class Dimmable(Switchable):
                     
     def dim(self, dimlevel):
         """ dim hue device """
+        
+        logger.debug('Dimmimg ' + self.type + ' ' + self.name + ' to dimlevel ' + str(dimlevel))
         param = {
             "bri": dimlevel if dimlevel > 0 else 1
         }
@@ -54,13 +70,23 @@ class Dimmable(Switchable):
         if state != self.state:
             param['on'] = state == 'on'
             
-        self.hue._set(param)
+        logger.debug('self.bri {} is int? {}'.format(self.bri, isinstance(self.bri, int)))
+        logger.debug('dimlevel {} is int? {}'.format(self.dimlevel, isinstance(self.bri, int)))
+        if self.bri != self.dimlevel:
+            logger.debug('Dimmimg hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
+            self.hue._set(param)
+        else:
+            logger.debug('Hue ' + self.type + ' ' + self.name + ' ' + str(self.dimlevel) + ' already applied')
             
-        self.lockHue = True
+        self.lockState = True
         self.state = state
         if self.pilightDevice is not None:
             self.pilightDevice['dimlevel'] = dimlevel
         self.bri = dimlevel
+                
+    def mustSync(self):
+        """ determine if sync is applicable """
+        return self.hueState != self._state or self.bri != self.dimlevel
 
     def getSyncParam(self):
         """ retrieve sync param """

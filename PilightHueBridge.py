@@ -81,7 +81,7 @@ class PilightHueBridge(object):
                 indent=4,
                 separators=(',', ': ')
             )
-        )  
+        )
 
     def run(self):
         logger.info('Daemon PID: %s' % os.getpid())

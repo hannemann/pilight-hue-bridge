@@ -7,6 +7,8 @@ logger = logging.getLogger('daemon')
 
 class Devices():
     
+    perfomanceLogging = False
+    
     groups = {}
     scenes = {}
     lights = {}
@@ -19,17 +21,19 @@ class Devices():
         
     def initDevices(self):
         """ initialize devices """
+        self.logPerformance('GET ============ Start init devices ================')
         self.parser.execute()
+        self.logPerformance('GET ============ Stop init devices ================')
 
     def update(self, u):
         """ process device updates """
         config = self.getUpdateConfig(u)
         if config is not False:            
-            
+            """
             logger.debug(config)
             logger.debug(config['state'])
             logger.debug(config['dimlevel'])
-            
+            """
             if 'scene' == config['type']:
                 """ process scene """
                 self.processScene(config)
@@ -92,29 +96,40 @@ class Devices():
             
     def processLight(self, config):
         """ process light """
-        light = self.groups[config['group']].lights[config['name']]
+        group = self.groups[config['group']]
+        logger.debug('Modifying light ' + config['name'] + ' in group ' + group.name)
         
-        if 'bri' == config['action']:
-            if config['dimlevel'] is not None:
-                logger.info('Deviceaction: Dim light ' + config['name'] + ' to ' + str(config['dimlevel']))
-                light.dim(config['dimlevel'])
-                
-            elif config['state'] is not None:
-                logger.info('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
+        if group.lockLightStates is False:
+            logger.debug(group.name + ' is not locked')
+            light = group.lights[config['name']]
+            
+            if 'bri' == config['action']:
+                if config['dimlevel'] is not None:
+                    logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
+                    light.dim(config['dimlevel'])
+                    
+                elif config['state'] is not None:
+                    logger.info(' Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
+                    light.state = config['state']
+            
+            if 'transition' == config['action']:
+                if 'on' == config['state']:
+                    logger.info('Set transtition on light ' + group.name + ' ' + config['name'])
+                    light.setTransition(config)
+                    
+                elif 'off' == config['state'] is not None:
+                    logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
+                    light.state = config['state']
+            
+            if 'toggle' == config['action'] and config['state'] is not None:
+                logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
                 light.state = config['state']
-        
-        if 'transition' == config['action']:
-            if 'on' == config['state']:
-                logger.info('Deviceaction: Set transtition on light ' + config['name'])
-                light.setTransition(config)
-                
-            elif 'off' == config['state'] is not None:
-                logger.info('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
-                light.state = config['state']
-        
-        if 'toggle' == config['action'] and config['state'] is not None:
-            logger.info('Deviceaction: Switch light ' + config['name'] + ' ' + config['state'])
-            light.state = config['state']
+        else:
+            logger.debug(group.name + ' is locked')
+    
+    def logPerformance(self, message):
+        if self.perfomanceLogging is True:
+            logger.debug(message)
 
 
 

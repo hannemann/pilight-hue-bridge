@@ -7,24 +7,31 @@ logger = logging.getLogger('daemon')
 
 class Group(Dimmable):
     
+    perfomanceLogging = False
+    
     lightName = 'all'
     type = 'group'
 
-    def __init__(self, daemon, hue):
+    def __init__(self, daemon, hue, hueValues):
+        self.hueValues = hueValues
         """ initialize """
-        Dimmable.__init__(self, daemon, hue)    
+        self.logPerformance('GET init group')
+        Dimmable.__init__(self, daemon, hue)
         self.scenes = {}
         self.lights = {}
+        self.lightIds = []
         self.activeScene = None
         self.groupId = hue.group_id
         self.groupName = self.name
         self.initPilightDevice()
         logger.debug(self.pilightDevice)
+        self.lockLightStates = False
+        self.logPerformance('GET init group end')
         
     def hasLights(self, lights):
         """ has lights """
-        set = frozenset(light.light_id for light in self.hue.lights)
-        return len(self.hue.lights) == len(set.intersection(lights))
+        set = frozenset(light.hue.light_id for light in self.lights.values())
+        return len(self.lights) == len(set.intersection(lights))
     
     def addScene(self, name, scene):
         """ add scene """
@@ -43,7 +50,7 @@ class Group(Dimmable):
     
     def addLight(self, name, light):
         """ add light """
-        self.lights[name] = light;
+        self.lights[name] = light
         
     def hasLight(self, name):
         """ has light """
@@ -81,14 +88,24 @@ class Group(Dimmable):
         """ lightStates example
         {u'1': {u'on': True, u'xy': [0.4871, 0.4892], u'bri': 147}, u'3': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'2': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'5': {u'on': True, u'bri': 1}, u'4': {u'on': True, u'xy': [0.4561, 0.482], u'bri': 109}, u'6': {u'on': True, u'xy': [0.6007, 0.3909], u'bri': 150}, u'9': {u'on': True, u'bri': 33}}
         """
+        #self.lockLightStates = True
         states = self.activeScene.lightStates
         
         for light in self.lights.values():
+            logger.debug('Light {} {}: Updating pilightDevice'.format(self.name, light.name))
             time.sleep(0.1)
             state = states[str(light.hue.light_id)]
             dimlevel = state['bri'] if state['on'] is True else 0
+            light._state = 'on' if state['on'] is True else 'off'
+            light.bri = dimlevel
+            logger.debug('Set light {} {}: bri={}, state={}'.format(self.name, light.name, str(light.bri), light._state))
             light.updatePilightDevice(dimlevel)
-                    
+        
+        #self.lockLightStates = False
+    
+    def logPerformance(self, message):
+        if self.perfomanceLogging is True:
+            logger.debug(message)
         
         
         

@@ -7,15 +7,20 @@ logger = logging.getLogger('daemon')
 
 class Light(Dimmable):
     
+    perfomanceLogging = False
+    
     type = 'light'
     
-    def __init__(self, daemon, pilight, hue):
+    def __init__(self, daemon, pilight, hue, hueValues):
         """ initialize """
+        self.hueValues = hueValues
+        self.logPerformance('GET init light')
         Dimmable.__init__(self, daemon, hue)
         self.groupName = pilight['group']
         self.lightName = self.name
         
         self.initPilightDevice()
+        self.logPerformance('GET init light end')
         
     def setTransition(self, config):
         """ apply transition """
@@ -41,7 +46,6 @@ class Light(Dimmable):
     def updatePilightDevice(self, dimlevel):
         """ update pilight device to reflect hue state """
         if self.pilightDevice is not None:
-            self.lockHue = True
             message = {
                 "action":"control",
                 "code":{
@@ -52,6 +56,11 @@ class Light(Dimmable):
                 }
             }
             self.daemon.pilight.sendMessage(message)
+            self.dimlevel = dimlevel
+    
+    def logPerformance(self, message):
+        if self.perfomanceLogging is True:
+            logger.debug(message)
         
         
         

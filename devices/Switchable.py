@@ -5,10 +5,11 @@ logger = logging.getLogger('daemon')
 
 class Switchable(object):
     
-    def __init__(self, daemon, hue):
+    def __init__(self, daemon, hue, hueValues):
         """ initialize """
         self.daemon = daemon
         self.hue = hue
+        self.hueValues = hueValues
         self.pilightDevice = None
         self.pilightDeviceName = ''
         
@@ -64,16 +65,30 @@ class Switchable(object):
                     self._state = state
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
+                
+            if self.pilightDevice is not None and 'off' == self._state:
+                self._switchPilightDeviceOff()
+        
+    def _switchPilightDeviceOff(self):
+        """ switch off pilight device """
+        message = {
+            "action":"control",
+            "code":{
+                "device":self.pilightDeviceName,
+                "state":"off"
+            }
+        }
+        self.daemon.pilight.sendMessage(message)
     
     def sync(self):
         """ synchronize state and dimlevel """
         if self.pilightDevice is not None:
             param = self.getSyncParam()
-            if self.mustSync():
+            if self.canSync():
                 success = self.hue._set(param)[0][0]
                 logger.debug('{2} synced {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error'))
                 
-    def mustSync(self):
+    def canSync(self):
         """ determine if sync is applicable """
         return self.hueState != self._state
         

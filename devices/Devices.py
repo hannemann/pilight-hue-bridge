@@ -62,7 +62,6 @@ class Devices():
     
     def updateDevices(self, module = None):
         """ process config updates """
-        return
         if isinstance(module, HueSender):            
             lights = self.daemon.hue.bridge.get_light()
             """ groups example
@@ -71,9 +70,11 @@ class Devices():
             groups = self.daemon.hue.bridge.get_group()
             for group in self.groups.values():
                 group.syncActiveScene(lights)
-                if group.hasActiveScene():
-                    continue
-                #group.syncLights(lights)
+                logger.debug('Group {0} has active scene: {1}'.format(group.name, group.hasActiveScene()))
+                if group.hasActiveScene() is False:
+                    hueGroup = groups[str(group.id)]
+                    logger.debug('Group {0} hue state: {1}'.format(group.name, hueGroup['state']))
+                    group.syncLights(lights, hueGroup)
             
     def getUpdateConfig(self, u):
         """ parse update """

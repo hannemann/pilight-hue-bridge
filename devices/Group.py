@@ -13,10 +13,9 @@ class Group(Dimmable):
     type = 'group'
 
     def __init__(self, daemon, hue, hueValues):
-        self.hueValues = hueValues
         """ initialize """
         self.logPerformance('GET init group')
-        Dimmable.__init__(self, daemon, hue)
+        Dimmable.__init__(self, daemon, hue, hueValues)
         self.scenes = {}
         self.lights = {}
         self.activeScene = None
@@ -33,7 +32,7 @@ class Group(Dimmable):
     
     def addScene(self, name, scene):
         """ add scene """
-        self.scenes[name] = scene;
+        self.scenes[name] = scene
         
     def hasScene(self, name):
         """ has scene """
@@ -83,24 +82,39 @@ class Group(Dimmable):
     def syncActiveScene(self, lights):
         """ synchronize active scene """
         if self.hasActiveScene() and self.activeScene.isActive(self, lights):
-            #logger.debug('current active scene remains active')
+            logger.debug('current active scene remains active')
             return           
             
         self.activeScene = None
         for scene in self.scenes.values():
             if scene.isActive(self, lights):
-                #logger.debug('activating scene {}'.format(scene.name))
+                logger.debug('activating scene {}'.format(scene.name))
                 self.activateScene(scene.name)
                 break;
             else:
-                #logger.debug('switching scene {} off'.format(scene.name))
+                logger.debug('switching scene {} off'.format(scene.name))
                 scene.state = 'off'
+                
+    def syncLights(self, lights, group):
+        """ synchronize pilight lights with hue lights """
+        for lightId in lights:
+            light = lights[lightId]
+            name = light['name']
+            if self.hasLight(name):
+                updateLight = self.lights[name]
+                state = 'on' if light['state']['on'] is True else 'off'
+                dimlevel = light['state']['bri']
+                logger.debug('{}: {} -> {}, {}'.format(lightId, updateLight.name, state, dimlevel))
+                if 'on' == state:
+                    updateLight.dimlevel = dimlevel
+                else:
+                    updateLight.state = state
+            
                 
     @Dimmable.dimlevel.setter
     def dimlevel(self, dimlevel):
         """ dim hue device """
         Dimmable.dimlevel.fset(self, dimlevel)
-        self.deactivateActiveScene()
         self.syncLightsWithGroup()
             
     def syncLightsWithGroup(self):
@@ -142,9 +156,6 @@ class Group(Dimmable):
         else:
             for light in self.lights.values():
                 light.sync()
-            
-    def syncScene(self):
-        """ apply scene """
     
     def logPerformance(self, message):
         if self.perfomanceLogging is True:

@@ -8,8 +8,6 @@ logger = logging.getLogger('daemon')
 class Group(Dimmable):
     
     perfomanceLogging = False
-    
-    lightName = 'all'
 
     def __init__(self, daemon, hue, hue_values):
         """ initialize """
@@ -21,6 +19,7 @@ class Group(Dimmable):
         self.groupId = hue.group_id
         self.id = self.groupId
         self.groupName = self.name
+        self.lightName = 'all'
         self.type = 'group'
         self.init_pilight_device()
         self.log_performance('GET init group end')
@@ -81,13 +80,13 @@ class Group(Dimmable):
             
     def sync_active_scene(self, lights):
         """ synchronize active scene """
-        if self.has_active_scene() and self.activeScene.isActive(self, lights):
+        if self.has_active_scene() and self.activeScene.is_active(lights):
             logger.debug('current active scene remains active')
             return           
             
         self.activeScene = None
         for scene in self.scenes.values():
-            if scene.isActive(self, lights):
+            if scene.is_active(lights):
                 logger.debug('activating scene {}'.format(scene.name))
                 self.activate_scene(scene.name)
                 break
@@ -118,6 +117,7 @@ class Group(Dimmable):
             
     def sync_lights_with_group(self):
         """ synchronize lights with group device """
+        logger.debug('Synchronizing lights dimlevel with group dimlevel')
         for light in self.lights.values():
             light.bri = self.dimlevel
             light._state = 'on' if self.dimlevel > 0 else 'off'

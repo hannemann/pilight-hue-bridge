@@ -3,20 +3,21 @@ import logging
 
 logger = logging.getLogger('daemon')
 
+
 class Scene(object):
     
     perfomanceLogging = False
     
-    def __init__(self, daemon, name, pilightScene, hue, group):
+    def __init__(self, daemon, pilight_scene, hue):
         """ initialize """
-        self.logPerformance('GET == init scene')
+        self.log_performance('GET == init scene')
         self.daemon = daemon
         self.pilight = daemon.pilight
         
         self.name = hue.name
         self.sceneId = hue.scene_id
-        self.pilightName = pilightScene['pilightName']
-        self.groupName = pilightScene['group']
+        self.pilightName = pilight_scene['pilightName']
+        self.groupName = pilight_scene['group']
         self.groupId = self.daemon.devices.groups[self.groupName].hue.group_id
         self.pilightDevice = self.pilight.devices[self.pilightName]
         self._state = self.pilightDevice['state']
@@ -26,7 +27,7 @@ class Scene(object):
             'GET', '/api/' + username + '/scenes/' + self.sceneId
         )
         self.lightStates = self.hueSettings['lightstates']
-        self.logPerformance('GET == init scene end')
+        self.log_performance('GET == init scene end')
     
     @property
     def state(self):
@@ -39,10 +40,10 @@ class Scene(object):
         if state in ['on', 'off']:
             self._state = state
             message = {
-                "action":"control",
-                "code":{
-                    "device":self.pilightName,
-                    "state":self._state
+                "action": "control",
+                "code": {
+                    "device": self.pilightName,
+                    "state": self._state
                 }
             }
             self.daemon.pilight.send_message(message)
@@ -54,52 +55,46 @@ class Scene(object):
         """ update """
         logger.info('update scene ' + self.name)
         
-    def isActive(self, group, lights):
+    def is_active(self, lights):
         """ determine if scene is currently active within group """
         
-        toMatch = len(self.lightStates)
-        #logger.debug('IsActive: ================= Scene {} ==============='.format(self.name))
+        to_match = len(self.lightStates)
+        # logger.debug('IsActive: ================= Scene {} ==============='.format(self.name))
         for lightId in self.lightStates:
-            realState = lights[lightId]['state']
-            sceneState = self.lightStates[lightId]
+            real_state = lights[lightId]['state']
+            scene_state = self.lightStates[lightId]
 
-            #logger.debug('IsActive: ================= {} ================='.format(lights[lightId]['name']))
-            #logger.debug('IsActive: real {}'.format(realState))
-            #logger.debug('IsActive: scene {}'.format(sceneState))
+            # logger.debug('IsActive: ================= {} ================='.format(lights[lightId]['name']))
+            # logger.debug('IsActive: real {}'.format(realState))
+            # logger.debug('IsActive: scene {}'.format(sceneState))
 
-            if realState['on'] == sceneState['on']:
-                if 'bri' in sceneState:
-                    if realState['bri'] == sceneState['bri']:
-                        if 'xy' in sceneState:
-                            if self.xyMatch(sceneState['xy'], realState['xy']):
-                                toMatch -= 1
+            if real_state['on'] == scene_state['on']:
+                if 'bri' in scene_state:
+                    if real_state['bri'] == scene_state['bri']:
+                        if 'xy' in scene_state:
+                            if self.xy_match(scene_state['xy'], real_state['xy']):
+                                to_match -= 1
                         else:
-                            toMatch -= 1
+                            to_match -= 1
                 else:
-                    toMatch -= 1
-                #logger.debug('IsActive : ================= {} ================='.format(lights[lightId]['name']))
+                    to_match -= 1
+                # logger.debug('IsActive : ================= {} ================='.format(lights[lightId]['name']))
 
-        #logger.debug('IsActive result: {}'.format(toMatch == 0))
-        return toMatch == 0
+        # logger.debug('IsActive result: {}'.format(toMatch == 0))
+        return to_match == 0
     
-    def xyMatch(self, scene, real):
+    @staticmethod
+    def xy_match(scene, real):
         """ xy can drift """
-        ranges=[
+        ranges = [
             [real[0] - 0.005, real[0] + 0.005],
             [real[1] - 0.005, real[1] + 0.005]
         ]
-        return scene[0] > ranges[0][0] and scene[0] < ranges[0][1] \
-            and scene[1] > ranges[1][0] and scene[1] < ranges[1][1]
+        if ranges[0][0] < scene[0] < ranges[0][1]:
+            return ranges[1][0] < scene[1] < ranges[1][1]
+
+        return False
     
-    def logPerformance(self, message):
+    def log_performance(self, message):
         if self.perfomanceLogging is True:
             logger.debug(message)
-        
-        
-        
-        
-        
-        
-        
-        
-        

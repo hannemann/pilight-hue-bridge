@@ -22,6 +22,7 @@ class Switchable(object):
         self._state = 'on' if on else 'off'
         self.hueState = self._state
         self.name = self.hueValues['name']
+        self.id = None
         self.type = ''
         self.groupName = ''
         self.lightName = ''
@@ -56,7 +57,7 @@ class Switchable(object):
                 param = {
                     "on": state == 'on'
                 }
-                success = 'success' in self.hue._set(param)[0][0]
+                success = 'success' in self.send_to_bridge(param)[0][0]
                 logger.debug(
                     '{3}: switch {0} {1} {2}'.format(
                         self.type, self.name, state, 'Success' if success else 'Error'
@@ -86,7 +87,7 @@ class Switchable(object):
         if self.pilightDevice is not None:
             param = self.get_sync_param()
             if self.can_sync():
-                success = self.hue._set(param)[0][0]
+                success = self.send_to_bridge(param)[0][0]
                 logger.debug(
                     '{2} synced {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error')
                 )
@@ -100,3 +101,7 @@ class Switchable(object):
         return {
             "on": self.state == 'on'
         }
+
+    def send_to_bridge(self, param):
+        """ send param to setter according to type """
+        return getattr(self.hue.bridge, 'set_' + self.type)(self.id, param)

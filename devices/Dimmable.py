@@ -46,7 +46,7 @@ class Dimmable(Switchable):
         logger.debug('Dimmimg ' + self.type + ' ' + self.name + ' to dimlevel ' + str(dimlevel))
         self.update_hue_device(dimlevel)
         self.update_pilight_device(dimlevel)
-        self.state = 'on' if dimlevel > 0 else 'off'
+        Switchable.state.fset(self, 'on' if dimlevel > 0 else 'off')
             
     def update_hue_device(self, dimlevel):
         """ update hue device """
@@ -58,7 +58,7 @@ class Dimmable(Switchable):
             state = 'on' if dimlevel > 0 else 'off'
             if state != self.state:
                 param['on'] = state == 'on'
-            success = self.hue._set(param)
+            success = self.send_to_bridge(param)
             logger.debug(
                 '{3}: apply dimlevel {0} to {1} {2}'.format(
                     dimlevel, self.type, self.name, 'Success' if success else 'Error'
@@ -83,6 +83,7 @@ class Dimmable(Switchable):
                 }
             }
             self.daemon.pilight.send_message(message)
+            logger.debug(self.pilightDeviceName)
             self.pilightDevice['dimlevel'] = dimlevel
             self._dimlevel = dimlevel
         else:
@@ -94,11 +95,11 @@ class Dimmable(Switchable):
         from_bri = int(config['fromBri'])
         to_bri = int(config['toBri'])
         tt = int(config['transitiontime'])
-        message = {
+        param = {
             "on": True,
             "bri": from_bri
         }
-        success = self.hue._set(message)
+        success = self.send_to_bridge(param)
         logger.debug(
             '{2} apply transition start values to {0} {1}'.format(
                 self.type, self.name, 'Success' if success else 'Error'
@@ -107,12 +108,12 @@ class Dimmable(Switchable):
         
         time.sleep(.5)
         
-        message = {
+        param = {
             "bri": to_bri,
             "transitiontime": tt,
             "on": to_bri > 0
         }
-        success = self.hue._set(message)
+        success = self.send_to_bridge(param)
         logger.debug(
             '{2} applied transition end values to {0} {1}'.format(
                 self.type, self.name, 'Success' if success else 'Error'

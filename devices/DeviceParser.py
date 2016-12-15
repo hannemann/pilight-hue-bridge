@@ -79,10 +79,9 @@ class DeviceParser(object):
 
     def init_scene(self, group, pilight_scene, hue_scene):
         """ initialize scene """
-        name = group + '_' + pilight_scene['name']
         self.container.groups[group].add_scene(
             pilight_scene['name'],
-            Scene(self.daemon, name, pilight_scene, hue_scene, group)
+            Scene(self.daemon, pilight_scene, hue_scene)
         )
 
     def get_pilight_device(self, device):

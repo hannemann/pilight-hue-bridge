@@ -4,11 +4,12 @@ import logging
 
 logger = logging.getLogger('daemon')
 
+
 class Dimmable(Switchable):
     
-    def __init__(self, daemon, hue, hueValues):
+    def __init__(self, daemon, hue, hue_values):
         """ initialize """
-        Switchable.__init__(self, daemon, hue, hueValues)
+        Switchable.__init__(self, daemon, hue, hue_values)
         
         if 'action' in self.hueValues and 'bri' in self.hueValues['action']:
             self.bri = self.hueValues['action']['bri']
@@ -19,9 +20,9 @@ class Dimmable(Switchable):
             
         self._dimlevel = None
         
-    def initPilightDevice(self):
+    def init_pilight_device(self):
         """ initzialize pilight device """
-        Switchable.initPilightDevice(self, skipSync = True)
+        Switchable.init_pilight_device(self)
         
         if self.pilightDevice is not None:
             if 'dimlevel' in self.pilightDevice:
@@ -43,11 +44,11 @@ class Dimmable(Switchable):
     def dimlevel(self, dimlevel):
         """ dim hue device """
         logger.debug('Dimmimg ' + self.type + ' ' + self.name + ' to dimlevel ' + str(dimlevel))
-        self.updateHueDevice(dimlevel)
-        self.updatePilightDevice(dimlevel)
+        self.update_hue_device(dimlevel)
+        self.update_pilight_device(dimlevel)
         self.state = 'on' if dimlevel > 0 else 'off'
             
-    def updateHueDevice(self, dimlevel):
+    def update_hue_device(self, dimlevel):
         """ update hue device """
         if self.bri != dimlevel:
             logger.debug('Dimmimg hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
@@ -58,66 +59,72 @@ class Dimmable(Switchable):
             if state != self.state:
                 param['on'] = state == 'on'
             success = self.hue._set(param)
-            logger.debug('{3}: apply dimlevel {0} to {1} {2}'.format(dimlevel, self.type, self.name, 'Success' if success else 'Error'))
+            logger.debug(
+                '{3}: apply dimlevel {0} to {1} {2}'.format(
+                    dimlevel, self.type, self.name, 'Success' if success else 'Error'
+                )
+            )
             if success:
                 self.bri = dimlevel
         else:
             logger.debug('Hue ' + self.type + ' ' + self.name + ' ' + str(dimlevel) + ' already applied')
-        
-        
-    def updatePilightDevice(self, dimlevel):
+
+    def update_pilight_device(self, dimlevel):
         """ update pilight device to reflect hue state """
         if self._dimlevel != dimlevel:
             logger.debug('Dimmimg pilight {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
             message = {
-                "action":"control",
-                "code":{
-                    "device":self.pilightDeviceName,
+                "action": "control",
+                "code": {
+                    "device": self.pilightDeviceName,
                     "values": {
                         "dimlevel": dimlevel
                     }
                 }
             }
-            self.daemon.pilight.sendMessage(message)
+            self.daemon.pilight.send_message(message)
             self.pilightDevice['dimlevel'] = dimlevel
             self._dimlevel = dimlevel
         else:
             logger.debug('pilight ' + self.type + ' ' + self.name + ' ' + str(dimlevel) + ' already applied')
         
-    def setTransition(self, config):
+    def set_transition(self, config):
         """ apply transition """
         self._state = 'on'
-        fromBri = int(config['fromBri'])
-        toBri = int(config['toBri'])
+        from_bri = int(config['fromBri'])
+        to_bri = int(config['toBri'])
         tt = int(config['transitiontime'])
         message = {
             "on": True,
-            "bri": fromBri
+            "bri": from_bri
         }
         success = self.hue._set(message)
-        logger.debug('{2} apply transition start values to {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error'))
+        logger.debug(
+            '{2} apply transition start values to {0} {1}'.format(
+                self.type, self.name, 'Success' if success else 'Error'
+            )
+        )
         
         time.sleep(.5)
         
         message = {
-            "bri": toBri,
+            "bri": to_bri,
             "transitiontime": tt,
-            "on": toBri > 0
+            "on": to_bri > 0
         }
         success = self.hue._set(message)
-        logger.debug('{2} applied transition end values to {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error'))
+        logger.debug(
+            '{2} applied transition end values to {0} {1}'.format(
+                self.type, self.name, 'Success' if success else 'Error'
+            )
+        )
                 
-    def canSync(self):
+    def can_sync(self):
         """ determine if sync is applicable """
         return self.hueState != self._state or self.bri != self.dimlevel
 
-    def getSyncParam(self):
+    def get_sync_param(self):
         """ retrieve sync param """
-        param = Switchable.getSyncParam(self)
+        param = Switchable.get_sync_param(self)
         param['bri'] = self.dimlevel if self.dimlevel > 0 else 1
         return param
-        
-        
-        
-        
-        

@@ -1,73 +1,73 @@
 import time
-from Switchable import Switchable
 from Dimmable import Dimmable
 import logging
 
 logger = logging.getLogger('daemon')
+
 
 class Group(Dimmable):
     
     perfomanceLogging = False
     
     lightName = 'all'
-    type = 'group'
 
-    def __init__(self, daemon, hue, hueValues):
+    def __init__(self, daemon, hue, hue_values):
         """ initialize """
-        self.logPerformance('GET init group')
-        Dimmable.__init__(self, daemon, hue, hueValues)
+        self.log_performance('GET init group')
+        Dimmable.__init__(self, daemon, hue, hue_values)
         self.scenes = {}
         self.lights = {}
         self.activeScene = None
         self.groupId = hue.group_id
         self.id = self.groupId
         self.groupName = self.name
-        self.initPilightDevice()
-        self.logPerformance('GET init group end')
+        self.type = 'group'
+        self.init_pilight_device()
+        self.log_performance('GET init group end')
         
-    def hasLights(self, lights):
+    def has_lights(self, lights):
         """ has lights """
-        set = frozenset(light.hue.light_id for light in self.lights.values())
-        return len(self.lights) == len(set.intersection(lights))
+        lights_set = frozenset(light.hue.light_id for light in self.lights.values())
+        return len(self.lights) == len(lights_set.intersection(lights))
     
-    def addScene(self, name, scene):
+    def add_scene(self, name, scene):
         """ add scene """
         self.scenes[name] = scene
         
-    def hasScene(self, name):
+    def has_scene(self, name):
         """ has scene """
         return name in self.scenes
     
-    def getScene(self, name):
+    def get_scene(self, name):
         """ retrieve scene """
-        if self.hasScene(name):
+        if self.has_scene(name):
             return self.scenes[name]
         
         return None
     
-    def hasActiveScene(self):
+    def has_active_scene(self):
         """ determine if group has active scene """
         
         return self.activeScene is not None
     
-    def addLight(self, name, light):
+    def add_light(self, name, light):
         """ add light """
         self.lights[name] = light
         
-    def hasLight(self, name):
+    def has_light(self, name):
         """ has light """
         return name in self.lights
     
-    def getLight(self, name):
+    def get_light(self, name):
         """ retrieve light """
-        if self.hasLight(name):
+        if self.has_light(name):
             return self.lights[name]
         
         return None
     
-    def activateScene(self, name):
+    def activate_scene(self, name):
         """ activate scene """
-        scene = self.getScene(name)
+        scene = self.get_scene(name)
         if scene is not None:
             self._state = 'on'
             scene.state = 'on'
@@ -77,11 +77,11 @@ class Group(Dimmable):
                     self.scenes[scene].state = 'off'
                     time.sleep(.2)
                     
-            self.syncPilightLightsWithScene()
+            self.sync_pilight_lights_with_scene()
             
-    def syncActiveScene(self, lights):
+    def sync_active_scene(self, lights):
         """ synchronize active scene """
-        if self.hasActiveScene() and self.activeScene.isActive(self, lights):
+        if self.has_active_scene() and self.activeScene.isActive(self, lights):
             logger.debug('current active scene remains active')
             return           
             
@@ -89,46 +89,42 @@ class Group(Dimmable):
         for scene in self.scenes.values():
             if scene.isActive(self, lights):
                 logger.debug('activating scene {}'.format(scene.name))
-                self.activateScene(scene.name)
-                break;
+                self.activate_scene(scene.name)
+                break
             else:
                 logger.debug('switching scene {} off'.format(scene.name))
                 scene.state = 'off'
                 
-    def syncLights(self, lights, group):
+    def sync_lights(self, lights, group):
         """ synchronize pilight lights with hue lights """
         for lightId in lights:
             light = lights[lightId]
             name = light['name']
-            if self.hasLight(name):
-                updateLight = self.lights[name]
+            if self.has_light(name):
+                update_light = self.lights[name]
                 state = 'on' if light['state']['on'] is True else 'off'
                 dimlevel = light['state']['bri']
-                logger.debug('{}: {} -> {}, {}'.format(lightId, updateLight.name, state, dimlevel))
+                logger.debug('{}: {} -> {}, {}'.format(lightId, update_light.name, state, dimlevel))
                 if 'on' == state:
-                    updateLight.dimlevel = dimlevel
+                    update_light.dimlevel = dimlevel
                 else:
-                    updateLight.state = state
-            
-                
+                    update_light.state = state
+
     @Dimmable.dimlevel.setter
     def dimlevel(self, dimlevel):
         """ dim hue device """
         Dimmable.dimlevel.fset(self, dimlevel)
-        self.syncLightsWithGroup()
+        self.sync_lights_with_group()
             
-    def syncLightsWithGroup(self):
+    def sync_lights_with_group(self):
         """ synchronize lights with group device """
         for light in self.lights.values():
             light.bri = self.dimlevel
             light._state = 'on' if self.dimlevel > 0 else 'off'
-            light.updatePilightDevice(self.dimlevel)
+            light.update_pilight_device(self.dimlevel)
             
-    def syncPilightLightsWithScene(self):
+    def sync_pilight_lights_with_scene(self):
         """ synchronize pilight devices with light states """
-        """ lightStates example
-        {u'1': {u'on': True, u'xy': [0.4871, 0.4892], u'bri': 147}, u'3': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'2': {u'on': True, u'xy': [0.6202, 0.3617], u'bri': 253}, u'5': {u'on': True, u'bri': 1}, u'4': {u'on': True, u'xy': [0.4561, 0.482], u'bri': 109}, u'6': {u'on': True, u'xy': [0.6007, 0.3909], u'bri': 150}, u'9': {u'on': True, u'bri': 33}}
-        """
         states = self.activeScene.lightStates
         
         for light in self.lights.values():
@@ -138,31 +134,27 @@ class Group(Dimmable):
             dimlevel = state['bri'] if state['on'] is True else 0
             light._state = 'on' if state['on'] is True else 'off'
             light.bri = dimlevel
-            logger.debug('Set light {} {}: bri={}, state={}'.format(self.name, light.name, str(light.bri), light._state))
-            light.updatePilightDevice(dimlevel)
+            logger.debug(
+                'Set light {} {}: bri={}, state={}'.format(self.name, light.name, str(light.bri), light._state)
+            )
+            light.update_pilight_device(dimlevel)
 
-    def syncWithPilight(self):
+    def sync_with_pilight(self):
         """ synchronize hue devices with pilight devices """
         for scene in self.scenes.values():
             if scene.state == 'on':
                 self.activeScene = scene
-                break;
+                break
                 
-        if self.hasActiveScene():
+        if self.has_active_scene():
             self.activeScene.state = 'on'
         elif self.pilightDevice is not None:
             self.sync()
-            self.syncLightsWithGroup()
+            self.sync_lights_with_group()
         else:
             for light in self.lights.values():
                 light.sync()
     
-    def logPerformance(self, message):
+    def log_performance(self, message):
         if self.perfomanceLogging is True:
             logger.debug(message)
-        
-        
-        
-        
-        
-    

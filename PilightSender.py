@@ -1,17 +1,10 @@
-#!/usr/bin/env python
 
-import socket
-import httplib
-import StringIO
-import struct
-import re
-import json
-import time
 import logging
 
 logger = logging.getLogger('daemon')
 
-class PilightSender():
+
+class PilightSender(object):
     
     daemon = None
     pilight = None
@@ -21,9 +14,8 @@ class PilightSender():
         self.daemon = pilight.daemon
         logger.info('pilight sender initialized')
     
-    def getConfig(self):
+    def get_config(self):
         message = {
             "action": "request config"
         }
-        self.pilight.sendMessage(message)
-    
+        self.pilight.send_message(message)

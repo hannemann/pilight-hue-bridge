@@ -45,7 +45,7 @@ class Scene(object):
                     "state":self._state
                 }
             }
-            self.daemon.pilight.sendMessage(message)
+            self.daemon.pilight.send_message(message)
             if 'on' == self._state:
                 success = self.daemon.hue.bridge.activate_scene(self.groupId, self.sceneId)[0]
                 logger.debug('{2}: switch scene {0} {1}'.format(self.name, state, 'Success' if success else 'Error'))

@@ -1,25 +1,18 @@
-#!/usr/bin/env python
 
-import socket
-import httplib
-import StringIO
-import struct
-import re
-import json
-import time
 import logging
 
 logger = logging.getLogger('daemon')
 
-class PilightReceiver():
+
+class PilightReceiver(object):
 
     def __init__(self, pilight):
         self.pilight = pilight
         self.daemon = pilight.daemon
         logger.info('pilight receiver initialized')
             
-    def parseConfig(self, c):
-        config = c['config'];
+    def parse_config(self, c):
+        config = c['config']
         
         self.pilight.config = config
         if 'devices' in config:

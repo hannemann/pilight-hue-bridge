@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 import socket
-import httplib
-import StringIO
 import struct
 import threading
 import re
@@ -15,6 +13,7 @@ import logging
 logger = logging.getLogger('pilight')
 logger.setLevel(logging.INFO)
 
+
 class Pilight(threading.Thread):
     
     service = "urn:schemas-upnp-org:service:pilight:1"
@@ -24,6 +23,10 @@ class Pilight(threading.Thread):
     restartTimer = None
     heartbeatTimer = None
     autoreconnect = False
+    ip = None
+    port = None
+    sock = None
+    alive = False
 
     def __init__(self, daemon, retries=1):
         threading.Thread.__init__(self, name='pilight')
@@ -37,19 +40,19 @@ class Pilight(threading.Thread):
         if self.discover():
             self.connect()
     
-    def discover(self, timeout=2):
+    def discover(self):
         group = ("239.255.255.250", 1900)
         message = "\r\n".join([
             'M-SEARCH * HTTP/1.1',
             'HOST: {0}:{1}'.format(*group),
             'MAN: "ssdp:discover"',
-            'ST: {st}','MX: 3','',''])
+            'ST: {st}', 'MX: 3', '', ''])
         
         self.ip = None
         self.port = None
         self.sock = None
         
-        sock = self.getUdpSocket()
+        sock = self.get_udp_socket()
 
         for _ in range(self.retries):
             sock.sendto(message.format(st=self.service), group)
@@ -60,15 +63,15 @@ class Pilight(threading.Thread):
                     if location:
                         self.ip = location.group(1)
                         self.port = location.group(2)
-                    break;
+                    break
                 except socket.timeout:
-                    break;
+                    break
                 except:
                     logger.info("no pilight ssdp connections found")
-                    break;
+                    break
             time.sleep(.2)
         if self.ip is not None and self.port is not None:
-            logger.info('pilight discovered');
+            logger.info('pilight discovered')
             return True
         else:
             logger.info('pilight server not found')
@@ -88,7 +91,7 @@ class Pilight(threading.Thread):
                 if self.identify():
                     logger.info('pilight connected')
                     if self.autoreconnect is True and self.heartbeatTimer is None:
-                        self.heartBeat()
+                        self.heartbeat()
                     text = ''
                     line = ''
                     while True:
@@ -96,11 +99,11 @@ class Pilight(threading.Thread):
                             break
                         try:
                             line = self.sock.recv(1024)
-                            text += line;
+                            text += line
                         except:
                             pass
                         if "\n\n" in line[-2:]:
-                            text = text[:-2];
+                            text = text[:-2]
                             
                             for f in iter(text.splitlines()):
                                 if f == 'BEAT':
@@ -109,11 +112,11 @@ class Pilight(threading.Thread):
                                     logger.debug(f)
                                     j = json.loads(f)
                                     if 'origin' in j and j['origin'] == "update":
-                                        self.daemon.proxyUpdate(j)
+                                        self.daemon.proxy_update(j)
                                     if 'config' in j and self.getConfigFlag is True:
                                         self.getConfigFlag = False
-                                        self.receiver.parseConfig(j)
-                                        self.daemon.updateDevices(self)
+                                        self.receiver.parse_config(j)
+                                        self.daemon.update_devices(self)
                                     if 'status' in j:
                                         logger.debug('Pilight action: ' + j['status'])
                                 except KeyError:
@@ -122,20 +125,20 @@ class Pilight(threading.Thread):
                                     pass
                                     
                             if self.getConfigFlag is True:
-                                self.sender.getConfig()
+                                self.sender.get_config()
                             
-                            text = "";
+                            text = ""
                         if self.autoreconnect is True and self.alive is False:
                             logger.info('Lost connection to pilight server')
                             self.hasServer = False
-                            break;
+                            break
                 self.sock.shutdown(socket.SHUT_RDWR)
                 self.sock.close()
                 
             if self.autoreconnect is True and self.hasServer is False:
                 if self.restartTimer is None:
                     logger.info('Trying to reconnect to pilight in 5 seconds')
-                    self.restartTimer = threading.Timer( 5, self.restart )
+                    self.restartTimer = threading.Timer(5, self.restart)
                     self.restartTimer.start()
                 time.sleep(2)
     
@@ -147,7 +150,7 @@ class Pilight(threading.Thread):
                 "config": 1
             }
         }
-        response = self.sendMessage(message).getResponse()
+        response = self.send_message(message).get_response()
         if response is not False and 'status' in response and response["status"] == "success":
             logger.info('Successfully identified against pilight api')
             return True
@@ -155,16 +158,16 @@ class Pilight(threading.Thread):
             logger.info('Could not identify against pilight api')
             return False
 
-    def heartBeat(self):
+    def heartbeat(self):
         logger.debug('sending heartbeat to pilight server')
         self.alive = False
         if self.hasServer is True:
-            self.sendMessage('heartbeat')
-        self.next_heartbeat = self.next_heartbeat + 5
-        self.heartbeatTimer = threading.Timer( self.next_heartbeat - time.time(), self.heartBeat )
+            self.send_message('heartbeat')
+        self.next_heartbeat += 5
+        self.heartbeatTimer = threading.Timer(self.next_heartbeat - time.time(), self.heartbeat)
         self.heartbeatTimer.start()
 
-    def sendMessage(self, message):
+    def send_message(self, message):
         if message == 'heartbeat':
             message = 'HEART'
         elif isinstance(message, list):
@@ -177,18 +180,18 @@ class Pilight(threading.Thread):
             pass
         return self
     
-    def getResponse(self):
+    def get_response(self):
         text = ''
         line = ''
         while True:
             try:
                 line = self.sock.recv(1024)
-                text += line;
+                text += line
             except:
                 pass
             if "\n\n" in line[-2:]:
-                text = text[:-2];
-                break;
+                text = text[:-2]
+                break
             if self.terminate is True:
                 break
         try:
@@ -197,11 +200,11 @@ class Pilight(threading.Thread):
             return False
         
         return response
-    
         
-    def getUdpSocket(self):
+    @staticmethod
+    def get_udp_socket():
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack('LL', 0, 10000));
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack('LL', 0, 10000))
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
         return sock
@@ -210,9 +213,9 @@ class Pilight(threading.Thread):
         logger.info('trying to reconnect to pilight server')
         if self.discover():
             self.connect()
-            self.restartTimer = None;
+            self.restartTimer = None
         else:
-            self.restartTimer = threading.Timer( 5, self.restart )
+            self.restartTimer = threading.Timer(5, self.restart)
             self.restartTimer.start()
     
     def shutdown(self):

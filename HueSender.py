@@ -43,7 +43,7 @@ class HueSender(threading.Thread):
             self.lights = self.bridge.lights
             logger.debug('Fetch groups from bridge')
             self.groups = self.bridge.groups
-            self.daemon.updateDevices(self)
+            self.daemon.update_devices(self)
             self.next_update = self.next_update + 5
             self.updateTimer = threading.Timer( self.next_update - time.time(), self.update )
             self.updateTimer.start()

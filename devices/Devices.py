@@ -1,11 +1,11 @@
 from HueSender import HueSender
-from Pilight import Pilight
 from DeviceParser import DeviceParser
 import logging
 
 logger = logging.getLogger('daemon')
 
-class Devices():
+
+class Devices(object):
     
     perfomanceLogging = False
     
@@ -13,8 +13,8 @@ class Devices():
     scenes = {}
     lights = {}
     pilightDevices = {
-            'groups':{},
-            'lights':{}
+            'groups': {},
+            'lights': {}
         }
         
     def __init__(self, daemon):
@@ -23,25 +23,25 @@ class Devices():
         self.parser = DeviceParser(self)
         logger.info('Devices container initialized')
         
-    def initDevices(self):
+    def init_devices(self):
         """ initialize devices """
-        self.logPerformance('GET ============ Start init devices ================')
+        self.log_performance('GET ============ Start init devices ================')
         self.parser.execute()
-        self.logPerformance('GET ============ Stop init devices ================')
-        self.logPerformance('PUT ============ Start sync with pilight ==========')
-        self.syncWithPilight()
-        self.logPerformance('PUT ============ Stop sync with pilight ==========')
+        self.log_performance('GET ============ Stop init devices ================')
+        self.log_performance('PUT ============ Start sync with pilight ==========')
+        self.sync_with_pilight()
+        self.log_performance('PUT ============ Stop sync with pilight ==========')
         
-    def syncWithPilight(self):
+    def sync_with_pilight(self):
         """ sync hue devices with pilight devices """
         groups = self.pilightDevices['groups']
         for name in groups:
             if name in self.groups:
-                self.groups[name].syncWithPilight()
+                self.groups[name].sync_with_pilight()
 
     def update(self, u):
         """ process device updates """
-        config = self.getUpdateConfig(u)
+        config = self.get_update_config(u)
         if config is not False:            
             """
             logger.debug(config)
@@ -50,39 +50,35 @@ class Devices():
             """
             if 'scene' == config['type']:
                 """ process scene """
-                self.processScene(config)
+                self.process_scene(config)
                 
             if 'group' == config['type']:
                 """ process group """
-                self.processGroup(config)
+                self.process_group(config)
                 
             if 'light' == config['type']:
                 """ process light """
-                self.processLight(config)
+                self.process_light(config)
     
-    def updateDevices(self, module = None):
+    def update_devices(self, module=None):
         """ process config updates """
         if isinstance(module, HueSender):            
             lights = self.daemon.hue.bridge.get_light()
-            """ groups example
-            {u'1': {u'name': u'Wohnzimmer', u'lights': [u'9', u'1', u'2', u'3', u'4', u'5', u'6'], u'state': {u'any_on': True, u'all_on': True}, u'action': {u'on': True, u'hue': 2730, u'colormode': u'xy', u'effect': u'none', u'alert': u'select', u'xy': [0.6007, 0.3909], u'bri': 150, u'ct': 500, u'sat': 254}, u'type': u'Room', u'class': u'Living room'}, u'2': {u'name': u'Schlafzimmer', u'lights': [u'8'], u'state': {u'any_on': True, u'all_on': True}, u'action': {u'on': True, u'bri': 254, u'alert': u'none'}, u'type': u'Room', u'class': u'Bedroom'}}
-            """
             groups = self.daemon.hue.bridge.get_group()
             for group in self.groups.values():
-                group.syncActiveScene(lights)
-                logger.debug('Group {0} has active scene: {1}'.format(group.name, group.hasActiveScene()))
-                if group.hasActiveScene() is False:
-                    hueGroup = groups[str(group.id)]
-                    logger.debug('Group {0} hue state: {1}'.format(group.name, hueGroup['state']))
-                    group.syncLights(lights, hueGroup)
+                group.sync_active_scene(lights)
+                logger.debug('Group {0} has active scene: {1}'.format(group.name, group.has_active_scene()))
+                if group.has_active_scene() is False:
+                    hue_group = groups[str(group.id)]
+                    logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['state']))
+                    group.sync_lights(lights, hue_group)
             
-    def getUpdateConfig(self, u):
+    def get_update_config(self, u):
         """ parse update """
         device = u['devices'][0]
         if 'hue_' == device[:4]:
-            config = self.parser.parseDeviceName(device)
-            
-            values = None
+            config = self.parser.parse_device_name(device)
+
             state = None
             dimlevel = None
             if 'values' in u:
@@ -99,14 +95,14 @@ class Devices():
             return config
         return False
             
-    def processScene(self, config):
+    def process_scene(self, config):
         """ process scene """
         if 'toggle' == config['action'] and 'on' == config['state']:
             
             logger.info('Deviceaction: Activate scene ' + config['name'])
-            self.groups[config['group']].activateScene(config['name'])
+            self.groups[config['group']].activate_scene(config['name'])
             
-    def processGroup(self, config):
+    def process_group(self, config):
         """ process group """
         if 'bri' == config['action'] and config['dimlevel'] is not None:
             
@@ -119,7 +115,7 @@ class Devices():
                 logger.info('Deviceaction: Switch group ' + config['group'] + ' ' + config['state'])
                 self.groups[config['group']].state = config['state']
             
-    def processLight(self, config):
+    def process_light(self, config):
         """ process light """
         group = self.groups[config['group']]
         light = group.lights[config['name']]
@@ -137,7 +133,7 @@ class Devices():
         if 'transition' == config['action']:
             if 'on' == config['state']:
                 logger.info('Set transtition on light ' + group.name + ' ' + config['name'])
-                light.setTransition(config)
+                light.set_transition(config)
                 
             elif 'off' == config['state'] is not None:
                 logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
@@ -147,15 +143,6 @@ class Devices():
             logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
             light.state = config['state']
     
-    def logPerformance(self, message):
+    def log_performance(self, message):
         if self.perfomanceLogging is True:
             logger.debug(message)
-
-
-
-
-    
-    
-    
-    
-    

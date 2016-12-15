@@ -54,30 +54,42 @@ class Scene(object):
         """ update """
         logger.info('update scene ' + self.name)
         
-    def isActive(self, lights):
-        """ determine if scene is currently active """
-        # TODO
-        if self.hueName == 'Gemuetlich':
-            toMatch = len(self.lightStates)
-            self.daemon.debug(toMatch)
-            for lightId in self.lightStates:
-                hueState = lights[lightId]['state']
-                selfState = self.lightStates[lightId]
+    def isActive(self, group, lights):
+        """ determine if scene is currently active within group """
+        
+        toMatch = len(self.lightStates)
+        #logger.debug('IsActive: ================= Scene {} ==============='.format(self.name))
+        for lightId in self.lightStates:
+            realState = lights[lightId]['state']
+            sceneState = self.lightStates[lightId]
 
-                self.daemon.debug(lights[lightId]['name'])
-                self.daemon.debug(hueState)
-                self.daemon.debug(selfState)
+            #logger.debug('IsActive: ================= {} ================='.format(lights[lightId]['name']))
+            #logger.debug('IsActive: real {}'.format(realState))
+            #logger.debug('IsActive: scene {}'.format(sceneState))
 
-                if hueState['on'] == selfState['on'] and hueState['bri'] == selfState['bri']:
-                    if 'xy' in selfState:
-                        if selfState['xy'][0] == hueState['xy'][0] and selfState['xy'][1] == hueState['xy'][1]:
+            if realState['on'] == sceneState['on']:
+                if 'bri' in sceneState:
+                    if realState['bri'] == sceneState['bri']:
+                        if 'xy' in sceneState:
+                            if self.xyMatch(sceneState['xy'], realState['xy']):
+                                toMatch -= 1
+                        else:
                             toMatch -= 1
-                    else:
-                        toMatch -= 1
+                else:
+                    toMatch -= 1
+                #logger.debug('IsActive : ================= {} ================='.format(lights[lightId]['name']))
 
-            self.daemon.debug(toMatch)
-            return toMatch == 0
-        return False
+        #logger.debug('IsActive result: {}'.format(toMatch == 0))
+        return toMatch == 0
+    
+    def xyMatch(self, scene, real):
+        """ xy can drift """
+        ranges=[
+            [real[0] - 0.005, real[0] + 0.005],
+            [real[1] - 0.005, real[1] + 0.005]
+        ]
+        return scene[0] > ranges[0][0] and scene[0] < ranges[0][1] \
+            and scene[1] > ranges[1][0] and scene[1] < ranges[1][1]
     
     def logPerformance(self, message):
         if self.perfomanceLogging is True:

@@ -79,11 +79,28 @@ class Group(Dimmable):
                     time.sleep(.2)
                     
             self.syncPilightLightsWithScene()
+            
+    def syncActiveScene(self, lights):
+        """ synchronize active scene """
+        if self.hasActiveScene() and self.activeScene.isActive(self, lights):
+            #logger.debug('current active scene remains active')
+            return           
+            
+        self.activeScene = None
+        for scene in self.scenes.values():
+            if scene.isActive(self, lights):
+                #logger.debug('activating scene {}'.format(scene.name))
+                self.activateScene(scene.name)
+                break;
+            else:
+                #logger.debug('switching scene {} off'.format(scene.name))
+                scene.state = 'off'
                 
     @Dimmable.dimlevel.setter
     def dimlevel(self, dimlevel):
         """ dim hue device """
         Dimmable.dimlevel.fset(self, dimlevel)
+        self.deactivateActiveScene()
         self.syncLightsWithGroup()
             
     def syncLightsWithGroup(self):

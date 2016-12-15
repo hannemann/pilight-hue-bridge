@@ -62,8 +62,18 @@ class Devices():
     
     def updateDevices(self, module = None):
         """ process config updates """
-        if isinstance(module, HueSender):
-            logger.debug('TODO: parse hue updates')
+        return
+        if isinstance(module, HueSender):            
+            lights = self.daemon.hue.bridge.get_light()
+            """ groups example
+            {u'1': {u'name': u'Wohnzimmer', u'lights': [u'9', u'1', u'2', u'3', u'4', u'5', u'6'], u'state': {u'any_on': True, u'all_on': True}, u'action': {u'on': True, u'hue': 2730, u'colormode': u'xy', u'effect': u'none', u'alert': u'select', u'xy': [0.6007, 0.3909], u'bri': 150, u'ct': 500, u'sat': 254}, u'type': u'Room', u'class': u'Living room'}, u'2': {u'name': u'Schlafzimmer', u'lights': [u'8'], u'state': {u'any_on': True, u'all_on': True}, u'action': {u'on': True, u'bri': 254, u'alert': u'none'}, u'type': u'Room', u'class': u'Bedroom'}}
+            """
+            groups = self.daemon.hue.bridge.get_group()
+            for group in self.groups.values():
+                group.syncActiveScene(lights)
+                if group.hasActiveScene():
+                    continue
+                #group.syncLights(lights)
             
     def getUpdateConfig(self, u):
         """ parse update """

@@ -18,14 +18,6 @@ class Dimmable(Switchable):
     def get_pilight_class(self):
         """ retrieve new pilight device class """
         return PilightDimmer
-        
-    def init_pilight_device(self):
-        """ initzialize pilight device """
-        Switchable.init_pilight_device(self)
-
-        if self.pilight is not None:
-            if self.dimlevel != self.bri or self.pilight.state != self.state:
-                self._state = self.pilight.state
     
     @property
     def dimlevel(self):
@@ -54,7 +46,7 @@ class Dimmable(Switchable):
         
     def set_transition(self, config):
         """ apply transition """
-        self._state = 'on'
+        self.state = 'on'
         from_bri = int(config['fromBri'])
         to_bri = int(config['toBri'])
         tt = int(config['transitiontime'])

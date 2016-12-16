@@ -18,7 +18,6 @@ class Switchable(object):
         self.groupName = ''
         self.lightName = ''
         self.action = 'toggle'
-        self._state = None
 
         self.hue = self.init_hue_device(hue_values, hue_id)
 
@@ -61,15 +60,14 @@ class Switchable(object):
         if state in ['on', 'off']:
             logger.debug('Switching ' + self.type + ' ' + self.name + ' ' + state)
             action = False
-            if self._state != state:
+            if self.state != state:
                 action = True
                 self.switch_hue(state)
                 if self.hue.state == state:
-                    self._state = state
+                    self.pilight.state = state
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
 
-            self.pilight.state = self._state
             self.state_callback(action)
 
     def switch_hue(self, state):

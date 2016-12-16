@@ -33,6 +33,10 @@ class Dimmer(Switch):
 
             self.update_pilight()
 
+    def reset_dimlevel(self):
+        """ to force update """
+        self._dimlevel = None
+
     def get_message(self):
         """ retrieve pilight message """
         message = Switch.get_message(self)

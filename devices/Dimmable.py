@@ -13,7 +13,6 @@ class Dimmable(Switchable):
         Switchable.__init__(self, daemon, hue_values, hue_id)
         self.pilight_device_class = PilightDimmer
         self.bri = self.get_initial_brightness(hue_values)
-        self._dimlevel = None
         self.action = 'bri'
         self.dimlevel_callbacks = []
         
@@ -22,14 +21,13 @@ class Dimmable(Switchable):
         Switchable.init_pilight_device(self)
 
         if self.pilightDevice is not None:
-            self._dimlevel = self.pilightDevice.dimlevel
             if self.dimlevel != self.bri or self.pilightDevice.state != self.state:
                 self._state = self.pilightDevice.state
     
     @property
     def dimlevel(self):
         """ retrieve dimlevel """
-        return self._dimlevel
+        return self.pilightDevice.dimlevel
     
     @dimlevel.setter
     def dimlevel(self, dimlevel):
@@ -64,10 +62,9 @@ class Dimmable(Switchable):
     def update_pilight_device(self, dimlevel):
         """ update pilight device to reflect hue state """
         action = False
-        if self._dimlevel != dimlevel:
+        if self.dimlevel != dimlevel:
             if self.pilightDevice is not None:
                 self.pilightDevice.dimlevel = dimlevel
-            self._dimlevel = dimlevel
             action = True
         else:
             logger.debug('pilight: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))

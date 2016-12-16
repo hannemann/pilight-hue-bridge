@@ -70,14 +70,20 @@ class Group(Dimmable):
         return None
 
     def get_hue_lights(self):
-        """ lazy fetch hue light states """
+        """ lazy fetch hue light states
+        :rtype: object
+        """
         if self.hue_lights is None:
             logger.debug('GET: fetch lights from bridge')
             self.hue_lights = self.daemon.hue.bridge.get_light()
 
         return self.hue_lights
 
-    @Dimmable.dimlevel.setter
+    @property
+    def dimlevel(self):
+        return self.pilightDevice.dimlevel
+
+    @dimlevel.setter
     def dimlevel(self, dimlevel):
         """ dim group """
         if dimlevel != self.dimlevel:
@@ -129,7 +135,8 @@ class Group(Dimmable):
 
         self.lock_sync_scene = False
                 
-    def sync_with_hue(self, lights, group):
+    def sync_with_hue(self, lights):
+        # , group
         """ synchronize pilight lights with hue lights """
 
         for lightId in lights:
@@ -206,7 +213,7 @@ class Group(Dimmable):
         if self.pilightDevice is not None:
             avg = int(self.get_average_dimlevel())
             if self.pilightDevice.dimlevel != avg:
-                self._dimlevel = None
+                self.pilightDevice.reset_dimlevel()
                 self.update_pilight_device(avg)
         self.lock_set_average = False
 
@@ -225,18 +232,18 @@ class Group(Dimmable):
         compute dimlevels for lights in group if
         mimics behaviour of app
         """
-        if dimlevel > self._dimlevel:
-            logger.debug('GROUP: calc factor: f = (254 - {}) / (254 - {})'.format(dimlevel, self._dimlevel))
-            f = float((254 - dimlevel)) / float((254 - self._dimlevel))
+        if dimlevel > self.dimlevel:
+            logger.debug('GROUP: calc factor: f = (254 - {}) / (254 - {})'.format(dimlevel, self.dimlevel))
+            f = float((254 - dimlevel)) / float((254 - self.dimlevel))
         else:
-            logger.debug('GROUP: calc factor: f = {} / {}'.format(dimlevel, self._dimlevel))
-            f = float(dimlevel) / float(self._dimlevel)
+            logger.debug('GROUP: calc factor: f = {} / {}'.format(dimlevel, self.dimlevel))
+            f = float(dimlevel) / float(self.dimlevel)
 
         logger.debug('GROUP: factor {}'.format(f))
 
         self.lock_set_average = True
         for light in self.lights.values():
-            if dimlevel > self._dimlevel:
+            if dimlevel > self.dimlevel:
                 dlvl = 254 - (254 - float(light.dimlevel)) * f
             else:
                 dlvl = max(1, float(light.dimlevel)) * f

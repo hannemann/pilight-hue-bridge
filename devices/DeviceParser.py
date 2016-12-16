@@ -68,11 +68,11 @@ class DeviceParser(object):
         """ initialize groups """
         for group in self.daemon.hue.groups:
             hue_values = self.daemon.hue.bridge.get_group(group.group_id)
-            self.container.groups[group.name] = Group(self.daemon, group, hue_values)
+            self.container.groups[group.name] = Group(self.daemon, hue_values, group.group_id)
 
     def init_light(self, pilight, light, hue_values):
         """ initialize light """
-        light = Light(self.daemon, pilight, light, hue_values)
+        light = Light(self.daemon, pilight, hue_values, light.light_id)
         self.container.groups[pilight['group']].add_light(
             pilight['name'], light
         )

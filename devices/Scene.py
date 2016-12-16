@@ -17,7 +17,7 @@ class Scene(object):
         self.sceneId = hue.scene_id
         self.pilightName = pilight_scene['pilightName']
         self.groupName = pilight_scene['group']
-        self.groupId = self.daemon.devices.groups[self.groupName].hue.group_id
+        self.groupId = self.daemon.devices.groups[self.groupName].id
         self.pilightDevice = self.pilight.devices[self.pilightName]
         self._state = self.pilightDevice['state']
         

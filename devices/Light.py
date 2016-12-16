@@ -8,14 +8,13 @@ class Light(Dimmable):
     
     perfomanceLogging = False
     
-    def __init__(self, daemon, pilight, hue, hue_values):
+    def __init__(self, daemon, pilight, hue_values, hue_id):
         """ initialize """
         self.log_performance('GET init light')
-        Dimmable.__init__(self, daemon, hue, hue_values)
+        Dimmable.__init__(self, daemon, hue_values, hue_id)
         self.groupName = pilight['group']
         self.lightName = self.name
         self.type = 'light'
-        self.id = hue.light_id
         
         self.init_pilight_device()
         self.log_performance('GET init light end')

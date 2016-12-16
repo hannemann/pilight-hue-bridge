@@ -10,15 +10,13 @@ class Group(Dimmable):
     
     perfomanceLogging = False
 
-    def __init__(self, daemon, hue, hue_values):
+    def __init__(self, daemon, hue_values, hue_id):
         """ initialize """
         self.log_performance('GET init group')
-        Dimmable.__init__(self, daemon, hue, hue_values)
+        Dimmable.__init__(self, daemon, hue_values, hue_id)
         self.scenes = {}
         self.lights = {}
         self.activeScene = None
-        self.groupId = hue.group_id
-        self.id = self.groupId
         self.groupName = self.name
         self.lightName = 'all'
         self.type = 'group'
@@ -30,7 +28,7 @@ class Group(Dimmable):
         
     def has_lights(self, lights):
         """ has lights """
-        lights_set = frozenset(light.hue.light_id for light in self.lights.values())
+        lights_set = frozenset(light.id for light in self.lights.values())
         return len(self.lights) == len(lights_set.intersection(lights))
     
     def add_scene(self, name, scene):
@@ -176,7 +174,7 @@ class Group(Dimmable):
         for light in self.lights.values():
             logger.debug('SYNCSCENE: {} {}: Updating pilightDevice'.format(self.name, light.name))
             time.sleep(0.1)
-            state = states[str(light.hue.light_id)]
+            state = states[str(light.id)]
             dimlevel = state['bri'] if state['on'] is True else 0
             light._state = 'on' if state['on'] is True else 'off'
             light.bri = dimlevel

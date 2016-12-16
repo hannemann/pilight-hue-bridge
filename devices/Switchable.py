@@ -6,10 +6,9 @@ logger = logging.getLogger('daemon')
 
 class Switchable(object):
     
-    def __init__(self, daemon, hue, hue_values):
+    def __init__(self, daemon, hue_values, hue_id):
         """ initialize """
         self.daemon = daemon
-        self.hue = hue
         self.hueValues = hue_values
         self.pilight_device_class = PilightSwitch
         self.pilightDevice = None
@@ -23,7 +22,7 @@ class Switchable(object):
         self._state = 'on' if on else 'off'
         self.hueState = self._state
         self.name = self.hueValues['name']
-        self.id = None
+        self.id = hue_id
         self.type = ''
         self.groupName = ''
         self.lightName = ''
@@ -103,7 +102,7 @@ class Switchable(object):
         """ send param to setter according to type
         :return: dict
         """
-        return getattr(self.hue.bridge, 'set_' + self.type)(self.id, param)
+        return getattr(self.daemon.hue.bridge, 'set_' + self.type)(self.id, param)
 
     def register_state_callback(self, func):
         """ register callback function """

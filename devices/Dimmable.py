@@ -8,9 +8,9 @@ logger = logging.getLogger('daemon')
 
 class Dimmable(Switchable):
     
-    def __init__(self, daemon, hue, hue_values):
+    def __init__(self, daemon, hue_values, hue_id):
         """ initialize """
-        Switchable.__init__(self, daemon, hue, hue_values)
+        Switchable.__init__(self, daemon, hue_values, hue_id)
         self.pilight_device_class = PilightDimmer
         
         if 'action' in self.hueValues and 'bri' in self.hueValues['action']:

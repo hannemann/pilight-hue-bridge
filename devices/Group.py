@@ -26,6 +26,7 @@ class Group(Dimmable):
         self.lock_set_average = False
         self.lock_sync_scene = False
         self.log_performance('GET init group end')
+        self.hue_lights = False
         
     def has_lights(self, lights):
         """ has lights """
@@ -48,7 +49,10 @@ class Group(Dimmable):
     
     def has_active_scene(self, name=False):
         """ determine if group has active scene """
-        return True if name and self.activeScene.name == name else self.activeScene is not None
+        if name is not False and self.activeScene is not None:
+            return self.activeScene.name == name
+
+        return self.activeScene is not None
     
     def add_light(self, name, light):
         """ add light """
@@ -66,6 +70,14 @@ class Group(Dimmable):
         if self.has_light(name):
             return self.lights[name]
         return None
+
+    def get_hue_lights(self):
+        """ lazy fetch hue light states """
+        if self.hue_lights is None:
+            logger.debug('GET: fetch lights from bridge')
+            self.hue_lights = self.daemon.hue.bridge.get_light()
+
+        return self.hue_lights
 
     @Dimmable.dimlevel.setter
     def dimlevel(self, dimlevel):
@@ -98,8 +110,9 @@ class Group(Dimmable):
         if self.lock_sync_scene is True:
             return
 
-        logger.debug('CHECK SCENE: fetch lights from bridge')
-        lights = self.daemon.hue.bridge.get_light()
+        self.lock_sync_scene = True
+
+        lights = self.get_hue_lights()
 
         if self.has_active_scene() and self.activeScene.is_active(lights):
             logger.debug('CHECK SCENE: current active scene remains active')
@@ -115,6 +128,8 @@ class Group(Dimmable):
                 if scene.state == 'on':
                     logger.debug('CHECK SCENE: switching scene {} off'.format(scene.name))
                     scene.state = 'off'
+
+        self.lock_sync_scene = False
                 
     def sync_with_hue(self, lights, group):
         """ synchronize pilight lights with hue lights """
@@ -157,6 +172,7 @@ class Group(Dimmable):
         """ synchronize pilight devices with light states """
         states = self.activeScene.lightStates
 
+        self.hue_lights = None
         for light in self.lights.values():
             logger.debug('SYNCSCENE: {} {}: Updating pilightDevice'.format(self.name, light.name))
             time.sleep(0.1)
@@ -168,6 +184,7 @@ class Group(Dimmable):
                 'Set pilight attributes: bri={}, state={}'.format(self.name, light.name, str(light.bri), light._state)
             )
             light.update_pilight_device(dimlevel)
+        logger.debug('SYNCSCENE: ==============')
 
     def light_dimmmed(self, e):
         """ callback if dimlevel has changed """
@@ -175,12 +192,14 @@ class Group(Dimmable):
             if self.lock_set_average is False:
                 self.set_light_average()
             if self.lock_sync_scene is False:
+                self.hue_lights = None
                 self.sync_active_scene()
 
     def light_switched(self, e):
         """ callback if state has changed """
         if e.action and self.has_light(e.origin.name):
             if self.lock_sync_scene is False:
+                self.hue_lights = None
                 self.sync_active_scene()
 
     def set_light_average(self):

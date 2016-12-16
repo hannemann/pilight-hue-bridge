@@ -117,7 +117,6 @@ class Dimmable(Switchable):
     def get_sync_param(self):
         """ retrieve sync param """
         param = Switchable.get_sync_param(self)
-        param['on'] = True if self.dimlevel > 0 else False
         if param['on']:
             param['bri'] = self.dimlevel if self.dimlevel > 0 else 1
         return param
@@ -129,7 +128,8 @@ class Dimmable(Switchable):
         for func in self.dimlevel_callbacks:
             func(DimlevelEvent(action, self))
 
-    def get_initial_brightness(self, hue_values):
+    @staticmethod
+    def get_initial_brightness(hue_values):
         """ retrieve initial brightness """
         bri = None
         if 'action' in hue_values and 'bri' in hue_values['action']:
@@ -138,7 +138,6 @@ class Dimmable(Switchable):
             bri = hue_values['state']['bri']
 
         return bri
-
 
 
 class DimlevelEvent(object):

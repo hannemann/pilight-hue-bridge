@@ -18,8 +18,8 @@ class Switchable(object):
         self.groupName = ''
         self.lightName = ''
         self.action = 'toggle'
-        self._state = self.get_initial_state(hue_values)
-        self.hueState = self._state
+        self._state = None
+        self.hueState = self.get_initial_state(hue_values)
         self.state_callbacks = []
         
     def get_pilight_device_name(self):
@@ -43,7 +43,7 @@ class Switchable(object):
     @property
     def state(self):
         """ get state """
-        return self._state
+        return self.pilightDevice.state
     
     @state.setter
     def state(self, state):
@@ -110,7 +110,8 @@ class Switchable(object):
         for func in self.state_callbacks:
             func(StateEvent(action, self))
 
-    def get_initial_state(self, hue_values):
+    @staticmethod
+    def get_initial_state(hue_values):
         """ retrieve inital state """
         on = False
         if 'action' in hue_values and 'on' in hue_values['action']:

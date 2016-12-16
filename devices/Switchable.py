@@ -18,9 +18,7 @@ class Switchable(object):
         self.groupName = ''
         self.lightName = ''
         self.action = 'toggle'
-
         self.hue = self.init_hue_device(hue_values, hue_id)
-
         self.state_callbacks = []
         
     def get_pilight_name(self):
@@ -45,9 +43,13 @@ class Switchable(object):
             pilight = self.daemon.pilight.devices[self.pilight_name]
             self.pilight = self.get_pilight_class()(self.daemon, self.pilight_name, pilight)
 
+    def get_hue_class(self):
+        """ retrieve hue device class """
+        return HueLight
+
     def init_hue_device(self, hue_values, hue_id):
         """ initialize hue device """
-        return HueLight(self.daemon, hue_values, hue_id)
+        return self.get_hue_class()(self.daemon, hue_values, hue_id)
             
     @property
     def state(self):

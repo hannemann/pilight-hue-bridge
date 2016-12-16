@@ -1,5 +1,7 @@
 import logging
+import time
 from Switchable import Switchable
+from hue.Scene import Scene as HueScene
 
 logger = logging.getLogger('daemon')
 
@@ -15,27 +17,39 @@ class Scene(Switchable):
         self.type = 'scene'
         self.groupName = group_name
         self.lightName = self.name
-        self.groupId = self.daemon.devices.groups[self.groupName].id
-        self.lightStates = self.get_light_states()
         self.init_pilight_device()
+        self.hue.group_id = self.daemon.devices.groups[self.groupName].id
         self.log_performance('GET == init scene end')
 
-    def switch_hue(self, state):
-        """ switch hue device """
-        if 'on' == state:
-            result = self.daemon.hue.bridge.activate_scene(self.groupId, self.id)[0]
-            logger.debug('SCENE: {}'.format(result.keys()[0]))
+    def get_hue_class(self):
+        """ retrieve hue device class """
+        return HueScene
 
-        return True
+    def sync_pilight(self, lights):
+        states = self.hue.lightStates
+
+        for light in lights.values():
+            logger.debug('SYNCSCENE: {} {}: Updating pilightDevice'.format(self.name, light.name))
+            time.sleep(0.1)
+            state = states[str(light.id)]
+            dimlevel = state['bri'] if state['on'] is True else 0
+            light.hue.dimlevel = dimlevel
+            light.update_pilight_device(dimlevel)
+            logger.debug(
+                'Set pilight attributes: bri={}, state={}'.format(
+                    self.name, light.name, str(light.bri), light.pilight.state
+                )
+            )
+        logger.debug('SYNCSCENE: ==============')
 
     def is_active(self, lights):
         """ determine if scene is currently active within group """
         
-        to_match = len(self.lightStates)
+        to_match = len(self.hue.lightStates)
         # logger.debug('IsActive: !!!!!!!!!!!!!!!!! Scene {} !!!!!!!!!!!!!!!!'.format(self.name))
-        for lightId in self.lightStates:
+        for lightId in self.hue.lightStates:
             real_state = lights[lightId]['state']
-            scene_state = self.lightStates[lightId]
+            scene_state = self.hue.lightStates[lightId]
 
             # logger.debug('IsActive: ================= {} ================='.format(lights[lightId]['name']))
             # logger.debug('IsActive: real\ton: {} bri: {} xy: {}'.format(
@@ -72,13 +86,6 @@ class Scene(Switchable):
             return ranges[1][0] < scene[1] < ranges[1][1]
 
         return False
-
-    def get_light_states(self):
-        username = self.daemon.hue.bridge.username
-        hue_settings = self.daemon.hue.bridge.request(
-            'GET', '/api/' + username + '/scenes/' + self.id
-        )
-        return hue_settings['lightstates']
 
     def log_performance(self, message):
         if self.performanceLogging is True:

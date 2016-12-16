@@ -105,7 +105,8 @@ class Group(Dimmable):
                     time.sleep(.2)
 
             self.lock_set_average = True
-            self.sync_pilight_lights_with_scene()
+            self.hue_lights = None
+            self.activeScene.sync_pilight(self.lights)
             self.lock_set_average = False
             # self.set_light_average()
             
@@ -165,32 +166,14 @@ class Group(Dimmable):
         if self.has_active_scene():
             self.activeScene.state = 'on'
             self.lock_set_average = True
-            self.sync_pilight_lights_with_scene()
+            self.hue_lights = None
+            self.activeScene.sync_pilight(self.lights)
             self.lock_set_average = False
 
         for light in self.lights.values():
             light.sync()
 
         self.set_light_average()
-
-    def sync_pilight_lights_with_scene(self):
-        """ synchronize pilight devices with light states """
-        states = self.activeScene.lightStates
-
-        self.hue_lights = None
-        for light in self.lights.values():
-            logger.debug('SYNCSCENE: {} {}: Updating pilightDevice'.format(self.name, light.name))
-            time.sleep(0.1)
-            state = states[str(light.id)]
-            dimlevel = state['bri'] if state['on'] is True else 0
-            light.hue.dimlevel = dimlevel
-            light.update_pilight_device(dimlevel)
-            logger.debug(
-                'Set pilight attributes: bri={}, state={}'.format(
-                    self.name, light.name, str(light.bri), light.pilight.state
-                )
-            )
-        logger.debug('SYNCSCENE: ==============')
 
     def light_dimmmed(self, e):
         """ callback if dimlevel has changed """

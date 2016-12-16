@@ -15,7 +15,8 @@ class PilightReceiver(object):
         
         self.pilight.config = config
         if 'devices' in config:
-            self.pilight.devices = self.normalize_devices(config['devices'])
+            # self.pilight.devices = self.normalize_devices(config['devices'])
+            self.pilight.devices = config['devices']
         if 'rules' in config:
             self.pilight.rules = self.pilight.config['rules']
         if 'gui' in config:

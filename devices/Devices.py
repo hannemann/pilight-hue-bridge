@@ -42,7 +42,7 @@ class Devices(object):
     def update(self, u):
         """ process device updates """
         config = self.get_update_config(u)
-        if config is not False:            
+        if config is not False:
             """
             logger.debug(config)
             logger.debug(config['state'])
@@ -55,13 +55,16 @@ class Devices(object):
             if 'group' == config['type']:
                 """ process group """
                 self.process_group(config)
+                # self.set_group_scene_switches()
                 
             if 'light' == config['type']:
                 """ process light """
                 self.process_light(config)
+                # self.set_group_scene_switches()
     
     def update_devices(self, module=None):
         """ process config updates """
+        return
         if isinstance(module, HueSender):            
             lights = self.daemon.hue.bridge.get_light()
             groups = self.daemon.hue.bridge.get_group()
@@ -70,8 +73,13 @@ class Devices(object):
                 logger.debug('Group {0} has active scene: {1}'.format(group.name, group.has_active_scene()))
                 if group.has_active_scene() is False:
                     hue_group = groups[str(group.id)]
-                    logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['state']))
-                    group.sync_lights(lights, hue_group)
+                    logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['action']['on']))
+                    group.sync_with_hue(lights, hue_group)
+
+    def set_group_scene_switches(self):
+        lights = self.daemon.hue.bridge.get_light()
+        for group in self.groups.values():
+            group.sync_active_scene(lights)
             
     def get_update_config(self, u):
         """ parse update """
@@ -99,29 +107,32 @@ class Devices(object):
         """ process scene """
         if 'toggle' == config['action'] and 'on' == config['state']:
             
-            logger.info('Deviceaction: Activate scene ' + config['name'])
+            logger.info('SCENE: Activate scene ' + config['name'])
             self.groups[config['group']].activate_scene(config['name'])
             
     def process_group(self, config):
         """ process group """
-        if 'bri' == config['action'] and config['dimlevel'] is not None:
-            
-            logger.info('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
-            self.groups[config['group']].dimlevel = config['dimlevel']
-            
-        if 'bri' == config['action'] and config['state'] is not None and config['dimlevel'] is None:
-            
-            if self.groups[config['group']].state != config['state']:
-                logger.info('Deviceaction: Switch group ' + config['group'] + ' ' + config['state'])
-                self.groups[config['group']].state = config['state']
+        group = self.groups[config['group']]
+        if 'bri' == config['action'] and group.can_modify(config):
+            logger.debug('GROUP: Modifying {}'.format(config['group']))
+            if config['dimlevel'] is not None:
+
+                logger.info('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
+                self.groups[config['group']].dimlevel = config['dimlevel']
+
+            elif config['state'] is not None:
+
+                if self.groups[config['group']].state != config['state']:
+                    logger.info('Deviceaction: Switch group ' + config['group'] + ' ' + config['state'])
+                    self.groups[config['group']].state = config['state']
             
     def process_light(self, config):
         """ process light """
         group = self.groups[config['group']]
         light = group.lights[config['name']]
-        logger.debug('Modifying light ' + light.name + ' in group ' + group.name)        
         
-        if 'bri' == config['action']:
+        if 'bri' == config['action'] and light.can_modify(config):
+            logger.debug('LIGHT: Modifying ' + light.name + ' in group ' + group.name)
             if config['dimlevel'] is not None:
                 logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
                 light.dimlevel = config['dimlevel']

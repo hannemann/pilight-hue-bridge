@@ -57,13 +57,13 @@ class Switchable(object):
                 param = {
                     "on": state == 'on'
                 }
-                success = 'success' in self.send_to_bridge(param)[0][0]
+                result = self.send_to_bridge(param)[0][0]
                 logger.debug(
-                    '{3}: switch {0} {1} {2}'.format(
-                        self.type, self.name, state, 'Success' if success else 'Error'
+                    'SWITCH: {0} {1} {2}: {3}'.format(
+                        self.type, self.name, state, result.keys()[0]
                     )
                 )
-                if success:
+                if 'success' == result.keys()[0]:
                     self._state = state
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
@@ -87,9 +87,9 @@ class Switchable(object):
         if self.pilightDevice is not None:
             param = self.get_sync_param()
             if self.can_sync():
-                success = self.send_to_bridge(param)[0][0]
+                result = self.send_to_bridge(param)[0][0]
                 logger.debug(
-                    '{2} synced {0} {1}'.format(self.type, self.name, 'Success' if success else 'Error')
+                    'SYNC: {0} {1}: {2}'.format(self.type, self.name, result.keys()[0])
                 )
                 
     def can_sync(self):
@@ -103,5 +103,7 @@ class Switchable(object):
         }
 
     def send_to_bridge(self, param):
-        """ send param to setter according to type """
+        """ send param to setter according to type
+        :return: dict
+        """
         return getattr(self.hue.bridge, 'set_' + self.type)(self.id, param)

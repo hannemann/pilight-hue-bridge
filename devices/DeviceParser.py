@@ -136,6 +136,11 @@ class DeviceParser(object):
         """ can add light? """
         return hue_light in self.container.pilightDevices['lights']
 
+    def can_add_light_to_group(self, hue_light):
+        """ can add light to group? """
+        if hue_light in self.container.pilightDevices['lights']:
+            return '_bri_' in self.container.pilightDevices['lights']['hue_light']
+
     def can_add_scene_to_group(self, group_name, hue_scene):
         """ can add scene to group? """
         self.log_performance('GET === test if device is handled by pilight')

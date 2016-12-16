@@ -19,7 +19,7 @@ class Light(Dimmable):
         
         self.init_pilight_device()
         self.log_performance('GET init light end')
-    
+
     def log_performance(self, message):
         if self.perfomanceLogging is True:
             logger.debug(message)

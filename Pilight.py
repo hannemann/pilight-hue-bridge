@@ -112,9 +112,7 @@ class Pilight(threading.Thread):
                                     logger.debug(f)
                                     j = json.loads(f)
                                     if 'origin' in j and j['origin'] == "update":
-                                        self.daemon.proxy_update(
-                                            self.receiver.normalize_update(j)
-                                        )
+                                        self.daemon.proxy_update(j)
                                     if 'config' in j and self.getConfigFlag is True:
                                         self.getConfigFlag = False
                                         self.receiver.parse_config(j)
@@ -173,9 +171,9 @@ class Pilight(threading.Thread):
         if message == 'heartbeat':
             message = 'HEART'
         elif isinstance(message, list):
-            message = '\n'.join(json.dumps(x) for x in self.sender.normalize_message(message))
+            message = '\n'.join(json.dumps(x) for x in message)
         else:
-            message = json.dumps(self.sender.normalize_message(message))
+            message = json.dumps(message)
         try:
             self.sock.send(message + '\n')
         except:

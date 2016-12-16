@@ -23,17 +23,17 @@ class Dimmable(Switchable):
     def init_pilight_device(self):
         """ initzialize pilight device """
         Switchable.init_pilight_device(self)
-        
+
         if self.pilightDevice is not None:
             if 'dimlevel' in self.pilightDevice:
                 self._dimlevel = self.pilightDevice['dimlevel']
             if self.dimlevel != self.bri or self.pilightDevice['state'] != self.state:
                 self._state = self.pilightDevice['state']
     
-    @Switchable.state.setter
-    def state(self, state):
-        """ set state """
-        Switchable.state.fset(self, state)
+    # @Switchable.state.setter
+    # def state(self, state):
+    #     """ set state """
+    #     Switchable.state.fset(self, state)
     
     @property
     def dimlevel(self):
@@ -58,16 +58,17 @@ class Dimmable(Switchable):
             state = 'on' if dimlevel > 0 else 'off'
             if state != self.state:
                 param['on'] = state == 'on'
-            success = self.send_to_bridge(param)
+            result = self.send_to_bridge(param)
+            success = result[0][0].keys()[0]
             logger.debug(
-                '{3}: apply dimlevel {0} to {1} {2}'.format(
-                    dimlevel, self.type, self.name, 'Success' if success else 'Error'
+                'DIMMER: {1} {2} apply dimlevel of {0}: {3}'.format(
+                    dimlevel, self.type, self.name, success
                 )
             )
-            if success:
+            if 'success' == success:
                 self.bri = dimlevel
         else:
-            logger.debug('Hue ' + self.type + ' ' + self.name + ' ' + str(dimlevel) + ' already applied')
+            logger.debug('Hue: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
 
     def update_pilight_device(self, dimlevel):
         """ update pilight device to reflect hue state """
@@ -83,11 +84,14 @@ class Dimmable(Switchable):
                 }
             }
             self.daemon.pilight.send_message(message)
-            logger.debug(self.pilightDeviceName)
-            self.pilightDevice['dimlevel'] = dimlevel
+            if self.pilightDevice is not None:
+                self.pilightDevice['dimlevel'] = dimlevel
             self._dimlevel = dimlevel
+
+            if 'group' != self.type and self.groupName is not None and self.groupName in self.daemon.devices.groups:
+                self.daemon.devices.groups[self.groupName].set_light_average()
         else:
-            logger.debug('pilight ' + self.type + ' ' + self.name + ' ' + str(dimlevel) + ' already applied')
+            logger.debug('pilight: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
         
     def set_transition(self, config):
         """ apply transition """
@@ -99,10 +103,10 @@ class Dimmable(Switchable):
             "on": True,
             "bri": from_bri
         }
-        success = self.send_to_bridge(param)
+        result = self.send_to_bridge(param)
         logger.debug(
-            '{2} apply transition start values to {0} {1}'.format(
-                self.type, self.name, 'Success' if success else 'Error'
+            'TRANSITION: apply start values to {0} {1}: {2}'.format(
+                self.type, self.name, result[0][0].keys()[0]
             )
         )
         
@@ -113,10 +117,10 @@ class Dimmable(Switchable):
             "transitiontime": tt,
             "on": to_bri > 0
         }
-        success = self.send_to_bridge(param)
+        result = self.send_to_bridge(param)
         logger.debug(
-            '{2} applied transition end values to {0} {1}'.format(
-                self.type, self.name, 'Success' if success else 'Error'
+            'TRANSITION: apply end values to {0} {1}: {2}'.format(
+                self.type, self.name, result[0][0].keys()[0]
             )
         )
                 
@@ -124,8 +128,18 @@ class Dimmable(Switchable):
         """ determine if sync is applicable """
         return self.hueState != self._state or self.bri != self.dimlevel
 
+    def can_modify(self, config):
+        """
+        determine if dimmable can be modified
+        :param config dict
+        :return boolean
+        """
+        return self.state != config['state'] or self.dimlevel != config['dimlevel']
+
     def get_sync_param(self):
         """ retrieve sync param """
         param = Switchable.get_sync_param(self)
-        param['bri'] = self.dimlevel if self.dimlevel > 0 else 1
+        param['on'] = True if self.dimlevel > 0 else False
+        if param['on']:
+            param['bri'] = self.dimlevel if self.dimlevel > 0 else 1
         return param

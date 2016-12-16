@@ -1,60 +1,40 @@
 import logging
+from Switchable import Switchable
 
 logger = logging.getLogger('daemon')
 
 
-class Scene(object):
+class Scene(Switchable):
     
     performanceLogging = False
     
-    def __init__(self, daemon, pilight_scene, hue):
+    def __init__(self, daemon, hue_values, hue_id, group_name):
         """ initialize """
+        Switchable.__init__(self, daemon, hue_values, hue_id)
         self.log_performance('GET == init scene')
         self.daemon = daemon
         self.pilight = daemon.pilight
-        
-        self.name = hue.name
-        self.sceneId = hue.scene_id
-        self.pilightName = pilight_scene['pilightName']
-        self.groupName = pilight_scene['group']
+        self.lightName = self.name
+        self.type = 'scene'
+
+        self.groupName = group_name
         self.groupId = self.daemon.devices.groups[self.groupName].id
-        self.pilightDevice = self.pilight.devices[self.pilightName]
-        self._state = self.pilightDevice['state']
+        self.init_pilight_device()
         
         username = self.daemon.hue.bridge.username
         self.hueSettings = self.daemon.hue.bridge.request(
-            'GET', '/api/' + username + '/scenes/' + self.sceneId
+            'GET', '/api/' + username + '/scenes/' + self.id
         )
         self.lightStates = self.hueSettings['lightstates']
         self.log_performance('GET == init scene end')
-    
-    @property
-    def state(self):
-        """ get state """
-        return self._state
-    
-    @state.setter
-    def state(self, state):
-        """ set state """
-        if state in ['on', 'off']:
-            self._state = state
-            message = {
-                "action": "control",
-                "code": {
-                    "device": self.pilightName,
-                    "state": self._state
-                }
-            }
-            logger.debug('SCENE: switch pilight {0} {1}'.format(self.name, state))
-            self.daemon.pilight.send_message(message)
-            if 'on' == self._state:
-                result = self.daemon.hue.bridge.activate_scene(self.groupId, self.sceneId)[0]
-                logger.debug('SCENE: {}'.format(result.keys()[0]))
-    
-    def update(self):
-        """ update """
-        logger.info('update scene ' + self.name)
-        
+
+    def switch_hue(self, state):
+        if 'on' == state:
+            result = self.daemon.hue.bridge.activate_scene(self.groupId, self.id)[0]
+            logger.debug('SCENE: {}'.format(result.keys()[0]))
+
+        self._state = state
+
     def is_active(self, lights):
         """ determine if scene is currently active within group """
         

@@ -21,6 +21,7 @@ class Dimmable(Switchable):
             self.bri = None
             
         self._dimlevel = None
+        self.action = 'bri'
         self.dimlevel_callbacks = []
         
     def init_pilight_device(self):

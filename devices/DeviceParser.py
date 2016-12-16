@@ -34,16 +34,16 @@ class DeviceParser(object):
         self.log_performance('GET ======== init lights end')
 
         self.log_performance('GET ======== parse scenes')
-        for hueScene in self.daemon.hue.scenes:
+        for hue_scene in self.daemon.hue.scenes:
 
             self.log_performance('GET ====== init scene - iterate devices container scene')
             for groupName in self.container.groups:
                 self.log_performance('GET ==== init scene - iterate devices container groups')
-                if self.can_add_scene_to_group(groupName, hueScene):
+                if self.can_add_scene_to_group(groupName, hue_scene):
                     self.init_scene(
                         groupName,
-                        self.container.pilightDevices['groups'][groupName]['scenes'][hueScene.name],
-                        hueScene
+                        self.container.pilightDevices['groups'][groupName]['scenes'][hue_scene.name],
+                        hue_scene.scene_id
                     )
                     break
                 self.log_performance('GET ==== init scene - iterate devices container groups end')
@@ -77,11 +77,17 @@ class DeviceParser(object):
             pilight['name'], light
         )
 
-    def init_scene(self, group, pilight_scene, hue_scene):
+    def init_scene(self, group, pilight_scene, hue_id):
         """ initialize scene """
+        hue_values = {
+            "name": pilight_scene['name'],
+            "state": {
+                "on": True if pilight_scene['state'] == 'on' else False
+            }
+        }
         self.container.groups[group].add_scene(
             pilight_scene['name'],
-            Scene(self.daemon, pilight_scene, hue_scene)
+            Scene(self.daemon, hue_values, hue_id, group)
         )
 
     def get_pilight_device(self, device):

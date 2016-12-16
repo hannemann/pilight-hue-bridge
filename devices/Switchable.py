@@ -26,6 +26,7 @@ class Switchable(object):
         self.type = ''
         self.groupName = ''
         self.lightName = ''
+        self.action = 'toggle'
         self.state_callbacks = []
         
     def get_pilight_device_name(self):
@@ -36,7 +37,7 @@ class Switchable(object):
             self.type,
             self.groupName,
             self.lightName,
-            'bri'
+            self.action
         ])
 
     def init_pilight_device(self):
@@ -58,26 +59,27 @@ class Switchable(object):
             action = False
             if self._state != state:
                 action = True
-                logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
-                param = {
-                    "on": state == 'on'
-                }
-                result = self.send_to_bridge(param)[0][0]
-                logger.debug(
-                    'SWITCH: {0} {1} {2}: {3}'.format(
-                        self.type, self.name, state, result.keys()[0]
-                    )
-                )
-                if 'success' == result.keys()[0]:
-                    self._state = state
+                self.switch_hue(state)
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
-                
-            if self.pilightDevice is not None and 'off' == self._state:
-                self.pilightDevice.state = 'off'
 
+            self.pilightDevice.state = self._state
             self.state_callback(action)
-    
+
+    def switch_hue(self, state):
+        logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
+        param = {
+            "on": state == 'on'
+        }
+        result = self.send_to_bridge(param)[0][0]
+        logger.debug(
+            'SWITCH: {0} {1} {2}: {3}'.format(
+                self.type, self.name, state, result.keys()[0]
+            )
+        )
+        if 'success' == result.keys()[0]:
+            self._state = state
+
     def sync(self):
         """ synchronize state and dimlevel """
         if self.pilightDevice is not None:

@@ -1,4 +1,5 @@
 from Switchable import Switchable
+from pilight.Dimmer import Dimmer as PilightDimmer
 import time
 import logging
 
@@ -10,6 +11,7 @@ class Dimmable(Switchable):
     def __init__(self, daemon, hue, hue_values):
         """ initialize """
         Switchable.__init__(self, daemon, hue, hue_values)
+        self.pilight_device_class = PilightDimmer
         
         if 'action' in self.hueValues and 'bri' in self.hueValues['action']:
             self.bri = self.hueValues['action']['bri']
@@ -19,21 +21,16 @@ class Dimmable(Switchable):
             self.bri = None
             
         self._dimlevel = None
+        self.dimlevel_callbacks = []
         
     def init_pilight_device(self):
         """ initzialize pilight device """
         Switchable.init_pilight_device(self)
 
         if self.pilightDevice is not None:
-            if 'dimlevel' in self.pilightDevice:
-                self._dimlevel = self.pilightDevice['dimlevel']
-            if self.dimlevel != self.bri or self.pilightDevice['state'] != self.state:
-                self._state = self.pilightDevice['state']
-    
-    # @Switchable.state.setter
-    # def state(self, state):
-    #     """ set state """
-    #     Switchable.state.fset(self, state)
+            self._dimlevel = self.pilightDevice.dimlevel
+            if self.dimlevel != self.bri or self.pilightDevice.state != self.state:
+                self._state = self.pilightDevice.state
     
     @property
     def dimlevel(self):
@@ -72,26 +69,16 @@ class Dimmable(Switchable):
 
     def update_pilight_device(self, dimlevel):
         """ update pilight device to reflect hue state """
+        action = False
         if self._dimlevel != dimlevel:
-            logger.debug('Dimmimg pilight {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
-            message = {
-                "action": "control",
-                "code": {
-                    "device": self.pilightDeviceName,
-                    "values": {
-                        "dimlevel": dimlevel
-                    }
-                }
-            }
-            self.daemon.pilight.send_message(message)
             if self.pilightDevice is not None:
-                self.pilightDevice['dimlevel'] = dimlevel
+                self.pilightDevice.dimlevel = dimlevel
             self._dimlevel = dimlevel
-
-            if 'group' != self.type and self.groupName is not None and self.groupName in self.daemon.devices.groups:
-                self.daemon.devices.groups[self.groupName].set_light_average()
+            action = True
         else:
             logger.debug('pilight: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
+
+        self.dimlevel_callback(action)
         
     def set_transition(self, config):
         """ apply transition """
@@ -143,3 +130,17 @@ class Dimmable(Switchable):
         if param['on']:
             param['bri'] = self.dimlevel if self.dimlevel > 0 else 1
         return param
+
+    def register_dimlevel_callback(self, func):
+        self.dimlevel_callbacks.append(func)
+
+    def dimlevel_callback(self, action):
+        for func in self.dimlevel_callbacks:
+            func(DimlevelEvent(action, self))
+
+
+class DimlevelEvent(object):
+
+    def __init__(self, action, origin):
+        self.action = action
+        self.origin = origin

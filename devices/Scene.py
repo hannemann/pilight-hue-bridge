@@ -49,7 +49,7 @@ class Scene(object):
             self.daemon.pilight.send_message(message)
             if 'on' == self._state:
                 result = self.daemon.hue.bridge.activate_scene(self.groupId, self.sceneId)[0]
-                logger.debug('SCENE: switch hue {0} {1}: {2}'.format(self.name, state, result.keys()[0]))
+                logger.debug('SCENE: {}'.format(result.keys()[0]))
     
     def update(self):
         """ update """

@@ -76,10 +76,10 @@ class Devices(object):
                     logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['action']['on']))
                     group.sync_with_hue(lights, hue_group)
 
-    def set_group_scene_switches(self):
-        lights = self.daemon.hue.bridge.get_light()
-        for group in self.groups.values():
-            group.sync_active_scene(lights)
+    # def set_group_scene_switches(self):
+    #     lights = self.daemon.hue.bridge.get_light()
+    #     for group in self.groups.values():
+    #         group.sync_active_scene(lights)
             
     def get_update_config(self, u):
         """ parse update """
@@ -106,9 +106,9 @@ class Devices(object):
     def process_scene(self, config):
         """ process scene """
         if 'toggle' == config['action'] and 'on' == config['state']:
-            
-            logger.info('SCENE: Activate scene ' + config['name'])
-            self.groups[config['group']].activate_scene(config['name'])
+            if self.groups[config['group']].has_active_scene(config['name']) is False:
+                logger.info('SCENE: Activate scene ' + config['name'])
+                self.groups[config['group']].activate_scene(config['name'])
             
     def process_group(self, config):
         """ process group """

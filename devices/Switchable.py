@@ -1,5 +1,5 @@
-    
 import logging
+from pilight.Switch import Switch as PilightSwitch
 
 logger = logging.getLogger('daemon')
 
@@ -11,6 +11,7 @@ class Switchable(object):
         self.daemon = daemon
         self.hue = hue
         self.hueValues = hue_values
+        self.pilight_device_class = PilightSwitch
         self.pilightDevice = None
         self.pilightDeviceName = ''
         on = False
@@ -26,20 +27,24 @@ class Switchable(object):
         self.type = ''
         self.groupName = ''
         self.lightName = ''
+        self.state_callbacks = []
         
-    def init_pilight_device(self):
+    def get_pilight_device_name(self):
         """ initialize pilight device """
         
-        self.pilightDeviceName = '_'.join([
+        return '_'.join([
             'hue',
             self.type,
             self.groupName,
             self.lightName,
             'bri'
         ])
-        
+
+    def init_pilight_device(self):
+        self.pilightDeviceName = self.get_pilight_device_name()
         if self.pilightDeviceName in self.daemon.pilight.devices:
-            self.pilightDevice = self.daemon.pilight.devices[self.pilightDeviceName]
+            pilight = self.daemon.pilight.devices[self.pilightDeviceName]
+            self.pilightDevice = self.pilight_device_class(self.daemon, self.pilightDeviceName, pilight)
             
     @property
     def state(self):
@@ -51,8 +56,9 @@ class Switchable(object):
         """ set state """
         if state in ['on', 'off']:
             logger.debug('Switching ' + self.type + ' ' + self.name + ' ' + state)
-            
+            action = False
             if self._state != state:
+                action = True
                 logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
                 param = {
                     "on": state == 'on'
@@ -69,18 +75,9 @@ class Switchable(object):
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
                 
             if self.pilightDevice is not None and 'off' == self._state:
-                self.switch_pilight_device_off()
-        
-    def switch_pilight_device_off(self):
-        """ switch off pilight device """
-        message = {
-            "action": "control",
-            "code": {
-                "device": self.pilightDeviceName,
-                "state": "off"
-            }
-        }
-        self.daemon.pilight.send_message(message)
+                self.pilightDevice.state = 'off'
+
+            self.state_callback(action)
     
     def sync(self):
         """ synchronize state and dimlevel """
@@ -107,3 +104,19 @@ class Switchable(object):
         :return: dict
         """
         return getattr(self.hue.bridge, 'set_' + self.type)(self.id, param)
+
+    def register_state_callback(self, func):
+        """ register callback function """
+        self.state_callbacks.append(func)
+
+    def state_callback(self, action):
+        """ call state callbacks """
+        for func in self.state_callbacks:
+            func(StateEvent(action, self))
+
+
+class StateEvent(object):
+
+    def __init__(self, action, origin):
+        self.action = action
+        self.origin = origin

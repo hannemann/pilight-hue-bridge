@@ -46,13 +46,16 @@ class Group(Dimmable):
             return self.scenes[name]
         return None
     
-    def has_active_scene(self):
+    def has_active_scene(self, name=False):
         """ determine if group has active scene """
-        return self.activeScene is not None
+        return True if name and self.activeScene.name == name else self.activeScene is not None
     
     def add_light(self, name, light):
         """ add light """
         self.lights[name] = light
+        if light.pilightDevice is not None:
+            light.register_dimlevel_callback(self.light_dimmmed)
+            light.register_state_callback(self.light_switched)
         
     def has_light(self, name):
         """ has light """
@@ -68,25 +71,8 @@ class Group(Dimmable):
     def dimlevel(self, dimlevel):
         """ dim group """
         if dimlevel != self.dimlevel:
-            if dimlevel > self._dimlevel:
-                logger.debug('GROUP: calc factor: f = (254 - {}) / (254 - {})'.format(dimlevel, self._dimlevel))
-                f = float((254 - dimlevel)) / float((254 - self._dimlevel))
-            else:
-                logger.debug('GROUP: calc factor: f = {} / {}'.format(dimlevel, self._dimlevel))
-                f = float(dimlevel) / float(self._dimlevel)
-
-            logger.debug('GROUP: factor {}'.format(f))
-
-            self.lock_set_average = True
-            for light in self.lights.values():
-                if dimlevel > self._dimlevel:
-                    dlvl = 254 - (254 - float(light.dimlevel)) * f
-                else:
-                    dlvl = max(1, float(light.dimlevel)) * f
-                light.dimlevel = int(round(dlvl))
-            self.lock_set_average = False
-
-            self.update_pilight_device(dimlevel)
+            self.set_average_dependent_dimlevels(dimlevel)\
+                .update_pilight_device(dimlevel)
         else:
             logger.debug('pilight: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
 
@@ -107,24 +93,27 @@ class Group(Dimmable):
             self.lock_set_average = False
             self.set_light_average()
             
-    def sync_active_scene(self, lights):
+    def sync_active_scene(self):
         """ synchronize active scene """
         if self.lock_sync_scene is True:
             return
 
+        logger.debug('CHECK SCENE: fetch lights from bridge')
+        lights = self.daemon.hue.bridge.get_light()
+
         if self.has_active_scene() and self.activeScene.is_active(lights):
-            logger.debug('current active scene remains active')
+            logger.debug('CHECK SCENE: current active scene remains active')
             return           
             
         self.activeScene = None
         for scene in self.scenes.values():
             if scene.is_active(lights):
-                logger.debug('activating scene {}'.format(scene.name))
+                logger.debug('CHECK SCENE: activating scene {}'.format(scene.name))
                 self.activate_scene(scene.name)
                 break
             else:
                 if scene.state == 'on':
-                    logger.debug('switching scene {} off'.format(scene.name))
+                    logger.debug('CHECK SCENE: switching scene {} off'.format(scene.name))
                     scene.state = 'off'
                 
     def sync_with_hue(self, lights, group):
@@ -145,11 +134,29 @@ class Group(Dimmable):
 
         if self.pilightDevice is not None:
             self.dimlevel = int(self.get_average_dimlevel())
-            
+
+    def sync_with_pilight(self):
+        """ synchronize hue devices with pilight devices """
+        for scene in self.scenes.values():
+            if scene.state == 'on':
+                self.activeScene = scene
+                break
+
+        if self.has_active_scene():
+            self.activeScene.state = 'on'
+            self.lock_set_average = True
+            self.sync_pilight_lights_with_scene()
+            self.lock_set_average = False
+
+        for light in self.lights.values():
+            light.sync()
+
+        self.set_light_average()
+
     def sync_pilight_lights_with_scene(self):
         """ synchronize pilight devices with light states """
         states = self.activeScene.lightStates
-        
+
         for light in self.lights.values():
             logger.debug('SYNCSCENE: {} {}: Updating pilightDevice'.format(self.name, light.name))
             time.sleep(0.1)
@@ -162,30 +169,29 @@ class Group(Dimmable):
             )
             light.update_pilight_device(dimlevel)
 
-    def sync_with_pilight(self):
-        """ synchronize hue devices with pilight devices """
-        for scene in self.scenes.values():
-            if scene.state == 'on':
-                self.activeScene = scene
-                break
+    def light_dimmmed(self, e):
+        """ callback if dimlevel has changed """
+        if e.action and self.has_light(e.origin.name):
+            if self.lock_set_average is False:
+                self.set_light_average()
+            if self.lock_sync_scene is False:
+                self.sync_active_scene()
 
-        lights = self.lights.values()
-
-        if self.has_active_scene():
-            self.activeScene.state = 'on'
-
-        for light in lights:
-            light.sync()
-
-        self.set_light_average()
+    def light_switched(self, e):
+        """ callback if state has changed """
+        if e.action and self.has_light(e.origin.name):
+            if self.lock_sync_scene is False:
+                self.sync_active_scene()
 
     def set_light_average(self):
         """ get average and update pilight device """
-        if self.pilightDevice is not None and self.lock_set_average is False:
+        self.lock_set_average = True
+        if self.pilightDevice is not None:
             avg = int(self.get_average_dimlevel())
-            if self.pilightDevice['dimlevel'] != avg:
+            if self.pilightDevice.dimlevel != avg:
                 self._dimlevel = None
                 self.update_pilight_device(avg)
+        self.lock_set_average = False
 
     def get_average_dimlevel(self):
         """
@@ -193,9 +199,34 @@ class Group(Dimmable):
         :return: float
         """
         lights = self.lights.values()
-        dimlevels = [l.dimlevel for l in lights if l.dimlevel is not None] #  and l.state is 'on'
+        dimlevels = [l.dimlevel for l in lights if l.dimlevel is not None]
         a = math.fsum(dimlevels) / len(lights)
         return round(a)
+
+    def set_average_dependent_dimlevels(self, dimlevel):
+        """
+        compute dimlevels for lights in group if
+        mimics behaviour of app
+        """
+        if dimlevel > self._dimlevel:
+            logger.debug('GROUP: calc factor: f = (254 - {}) / (254 - {})'.format(dimlevel, self._dimlevel))
+            f = float((254 - dimlevel)) / float((254 - self._dimlevel))
+        else:
+            logger.debug('GROUP: calc factor: f = {} / {}'.format(dimlevel, self._dimlevel))
+            f = float(dimlevel) / float(self._dimlevel)
+
+        logger.debug('GROUP: factor {}'.format(f))
+
+        self.lock_set_average = True
+        for light in self.lights.values():
+            if dimlevel > self._dimlevel:
+                dlvl = 254 - (254 - float(light.dimlevel)) * f
+            else:
+                dlvl = max(1, float(light.dimlevel)) * f
+            light.dimlevel = int(round(dlvl))
+        self.lock_set_average = False
+
+        return self
 
     def log_performance(self, message):
         if self.perfomanceLogging is True:

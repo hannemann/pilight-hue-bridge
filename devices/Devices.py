@@ -7,7 +7,7 @@ logger = logging.getLogger('daemon')
 
 class Devices(object):
     
-    perfomanceLogging = False
+    performanceLogging = False
     
     groups = {}
     scenes = {}
@@ -155,5 +155,5 @@ class Devices(object):
             light.state = config['state']
     
     def log_performance(self, message):
-        if self.perfomanceLogging is True:
+        if self.performanceLogging is True:
             logger.debug(message)

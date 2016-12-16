@@ -6,7 +6,7 @@ logger = logging.getLogger('daemon')
 
 class Light(Dimmable):
     
-    perfomanceLogging = False
+    performanceLogging = False
     
     def __init__(self, daemon, pilight, hue_values, hue_id):
         """ initialize """
@@ -20,5 +20,5 @@ class Light(Dimmable):
         self.log_performance('GET init light end')
 
     def log_performance(self, message):
-        if self.perfomanceLogging is True:
+        if self.performanceLogging is True:
             logger.debug(message)

@@ -7,7 +7,7 @@ logger = logging.getLogger('daemon')
 
 
 class DeviceParser(object):
-    perfomanceLogging = False
+    performanceLogging = False
 
     def __init__(self, container):
         """ initialize """
@@ -153,5 +153,5 @@ class DeviceParser(object):
         return scene_name in self.container.pilightDevices['groups'][group_name]['scenes']
 
     def log_performance(self, message):
-        if self.perfomanceLogging is True:
+        if self.performanceLogging is True:
             logger.debug(message)

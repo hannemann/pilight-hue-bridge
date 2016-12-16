@@ -8,7 +8,7 @@ logger = logging.getLogger('daemon')
 
 class Group(Dimmable):
     
-    perfomanceLogging = False
+    performanceLogging = False
 
     def __init__(self, daemon, hue_values, hue_id):
         """ initialize """
@@ -246,5 +246,5 @@ class Group(Dimmable):
         return self
 
     def log_performance(self, message):
-        if self.perfomanceLogging is True:
+        if self.performanceLogging is True:
             logger.debug(message)

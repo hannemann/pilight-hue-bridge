@@ -9,24 +9,17 @@ class Switchable(object):
     def __init__(self, daemon, hue_values, hue_id):
         """ initialize """
         self.daemon = daemon
-        self.hueValues = hue_values
         self.pilight_device_class = PilightSwitch
         self.pilightDevice = None
         self.pilightDeviceName = ''
-        on = False
-        if 'action' in self.hueValues and 'on' in self.hueValues['action']:
-            on = self.hueValues['action']['on']
-        elif 'state' in self.hueValues and 'on' in self.hueValues['state']:
-            on = self.hueValues['state']['on']
-            
-        self._state = 'on' if on else 'off'
-        self.hueState = self._state
-        self.name = self.hueValues['name']
+        self.name = hue_values['name']
         self.id = hue_id
         self.type = ''
         self.groupName = ''
         self.lightName = ''
         self.action = 'toggle'
+        self._state = self.get_initial_state(hue_values)
+        self.hueState = self._state
         self.state_callbacks = []
         
     def get_pilight_device_name(self):
@@ -41,6 +34,7 @@ class Switchable(object):
         ])
 
     def init_pilight_device(self):
+        """ initialize pilight device """
         self.pilightDeviceName = self.get_pilight_device_name()
         if self.pilightDeviceName in self.daemon.pilight.devices:
             pilight = self.daemon.pilight.devices[self.pilightDeviceName]
@@ -67,6 +61,7 @@ class Switchable(object):
             self.state_callback(action)
 
     def switch_hue(self, state):
+        """ send message to bridge """
         logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
         param = {
             "on": state == 'on'
@@ -114,6 +109,16 @@ class Switchable(object):
         """ call state callbacks """
         for func in self.state_callbacks:
             func(StateEvent(action, self))
+
+    def get_initial_state(self, hue_values):
+        """ retrieve inital state """
+        on = False
+        if 'action' in hue_values and 'on' in hue_values['action']:
+            on = hue_values['action']['on']
+        elif 'state' in hue_values and 'on' in hue_values['state']:
+            on = hue_values['state']['on']
+
+        return 'on' if on else 'off'
 
 
 class StateEvent(object):

@@ -12,20 +12,12 @@ class Scene(Switchable):
         """ initialize """
         Switchable.__init__(self, daemon, hue_values, hue_id)
         self.log_performance('GET == init scene')
-        self.daemon = daemon
-        self.pilight = daemon.pilight
-        self.lightName = self.name
         self.type = 'scene'
-
         self.groupName = group_name
+        self.lightName = self.name
         self.groupId = self.daemon.devices.groups[self.groupName].id
+        self.lightStates = self.get_light_states()
         self.init_pilight_device()
-        
-        username = self.daemon.hue.bridge.username
-        self.hueSettings = self.daemon.hue.bridge.request(
-            'GET', '/api/' + username + '/scenes/' + self.id
-        )
-        self.lightStates = self.hueSettings['lightstates']
         self.log_performance('GET == init scene end')
 
     def switch_hue(self, state):
@@ -79,7 +71,14 @@ class Scene(Switchable):
             return ranges[1][0] < scene[1] < ranges[1][1]
 
         return False
-    
+
+    def get_light_states(self):
+        username = self.daemon.hue.bridge.username
+        hue_settings = self.daemon.hue.bridge.request(
+            'GET', '/api/' + username + '/scenes/' + self.id
+        )
+        return hue_settings['lightstates']
+
     def log_performance(self, message):
         if self.performanceLogging is True:
             logger.debug(message)

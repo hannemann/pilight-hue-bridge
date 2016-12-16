@@ -12,14 +12,7 @@ class Dimmable(Switchable):
         """ initialize """
         Switchable.__init__(self, daemon, hue_values, hue_id)
         self.pilight_device_class = PilightDimmer
-        
-        if 'action' in self.hueValues and 'bri' in self.hueValues['action']:
-            self.bri = self.hueValues['action']['bri']
-        elif 'state' in self.hueValues and 'bri' in self.hueValues['state']:
-            self.bri = self.hueValues['state']['bri']
-        else:
-            self.bri = None
-            
+        self.bri = self.get_initial_brightness(hue_values)
         self._dimlevel = None
         self.action = 'bri'
         self.dimlevel_callbacks = []
@@ -138,6 +131,17 @@ class Dimmable(Switchable):
     def dimlevel_callback(self, action):
         for func in self.dimlevel_callbacks:
             func(DimlevelEvent(action, self))
+
+    def get_initial_brightness(self, hue_values):
+        """ retrieve initial brightness """
+        bri = None
+        if 'action' in hue_values and 'bri' in hue_values['action']:
+            bri = hue_values['action']['bri']
+        elif 'state' in hue_values and 'bri' in hue_values['state']:
+            bri = hue_values['state']['bri']
+
+        return bri
+
 
 
 class DimlevelEvent(object):

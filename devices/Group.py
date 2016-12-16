@@ -96,7 +96,7 @@ class Group(Dimmable):
         """ activate scene """
         scene = self.get_scene(name)
         if scene is not None:
-            self._state = 'on'
+            self.state = 'on'
             scene.state = 'on'
             self.activeScene = scene
             for scene in self.scenes:
@@ -183,12 +183,13 @@ class Group(Dimmable):
             time.sleep(0.1)
             state = states[str(light.id)]
             dimlevel = state['bri'] if state['on'] is True else 0
-            light._state = 'on' if state['on'] is True else 'off'
-            light.bri = dimlevel
-            logger.debug(
-                'Set pilight attributes: bri={}, state={}'.format(self.name, light.name, str(light.bri), light._state)
-            )
+            light.hue.dimlevel = dimlevel
             light.update_pilight_device(dimlevel)
+            logger.debug(
+                'Set pilight attributes: bri={}, state={}'.format(
+                    self.name, light.name, str(light.bri), light.pilight.state
+                )
+            )
         logger.debug('SYNCSCENE: ==============')
 
     def light_dimmmed(self, e):

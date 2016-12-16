@@ -108,7 +108,7 @@ class Group(Dimmable):
             self.hue_lights = None
             self.activeScene.sync_pilight(self.lights)
             self.lock_set_average = False
-            # self.set_light_average()
+            self.set_light_average()
             
     def sync_active_scene(self):
         """ synchronize active scene """

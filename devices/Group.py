@@ -55,7 +55,7 @@ class Group(Dimmable):
     def add_light(self, name, light):
         """ add light """
         self.lights[name] = light
-        if light.pilightDevice is not None:
+        if light.pilight is not None:
             light.register_dimlevel_callback(self.light_dimmmed)
             light.register_state_callback(self.light_switched)
         
@@ -81,7 +81,7 @@ class Group(Dimmable):
 
     @property
     def dimlevel(self):
-        return self.pilightDevice.dimlevel
+        return self.pilight.dimlevel
 
     @dimlevel.setter
     def dimlevel(self, dimlevel):
@@ -152,7 +152,7 @@ class Group(Dimmable):
                 else:
                     update_light.state = state
 
-        if self.pilightDevice is not None:
+        if self.pilight is not None:
             self.dimlevel = int(self.get_average_dimlevel())
 
     def sync_with_pilight(self):
@@ -210,10 +210,10 @@ class Group(Dimmable):
     def set_light_average(self):
         """ get average and update pilight device """
         self.lock_set_average = True
-        if self.pilightDevice is not None:
+        if self.pilight is not None:
             avg = int(self.get_average_dimlevel())
-            if self.pilightDevice.dimlevel != avg:
-                self.pilightDevice.reset_dimlevel()
+            if self.pilight.dimlevel != avg:
+                self.pilight.reset_dimlevel()
                 self.update_pilight_device(avg)
         self.lock_set_average = False
 

@@ -53,7 +53,8 @@ class Switchable(object):
             action = False
             if self._state != state:
                 action = True
-                self.switch_hue(state)
+                if self.switch_hue(state):
+                    self._state = state
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
 
@@ -72,8 +73,7 @@ class Switchable(object):
                 self.type, self.name, state, result.keys()[0]
             )
         )
-        if 'success' == result.keys()[0]:
-            self._state = state
+        return 'success' == result.keys()[0]
 
     def sync(self):
         """ synchronize state and dimlevel """

@@ -21,11 +21,13 @@ class Scene(Switchable):
         self.log_performance('GET == init scene end')
 
     def switch_hue(self, state):
+        result = {"success":True}
         if 'on' == state:
             result = self.daemon.hue.bridge.activate_scene(self.groupId, self.id)[0]
             logger.debug('SCENE: {}'.format(result.keys()[0]))
 
         self._state = state
+        return result.keys()[0]
 
     def is_active(self, lights):
         """ determine if scene is currently active within group """

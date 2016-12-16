@@ -108,13 +108,13 @@ class Group(Dimmable):
         if self.lock_sync_scene is True:
             return
 
-        self.lock_sync_scene = True
-
         lights = self.get_hue_lights()
 
         if self.has_active_scene() and self.activeScene.is_active(lights):
             logger.debug('CHECK SCENE: current active scene remains active')
-            return           
+            return
+
+        self.lock_sync_scene = True
             
         self.activeScene = None
         for scene in self.scenes.values():

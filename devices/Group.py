@@ -1,5 +1,6 @@
 import time
 from Dimmable import Dimmable
+from hue.Group import Group as HueGroup
 import logging
 import math
 
@@ -25,6 +26,10 @@ class Group(Dimmable):
         self.lock_sync_scene = False
         self.log_performance('GET init group end')
         self.hue_lights = False
+
+    def get_hue_class(self):
+        """ retrieve hue device class """
+        return HueGroup
         
     def has_lights(self, lights):
         """ has lights """

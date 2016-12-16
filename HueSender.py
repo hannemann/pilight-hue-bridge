@@ -1,14 +1,15 @@
 #!/usr/bin/python
 
 from phue import Bridge
-import logging
-from phue import logger as hueLogger
+from phue import logger as hue_logger
 
-import threading, time
+import threading
+import time
 import logging
 
 logger = logging.getLogger('hue')
 logger.setLevel(logging.INFO)
+
 
 class HueSender(threading.Thread):
     
@@ -21,6 +22,9 @@ class HueSender(threading.Thread):
     def __init__(self, daemon):
         threading.Thread.__init__(self, name='hue')
         self.daemon = daemon
+        self.bridge = None
+        self.next_update = None
+        self.updateTimer = None
         if 'h' in self.daemon.logging['mode']:
             logger.setLevel(self.daemon.logging['h-level'])
         logger.info('hue sender initialized')
@@ -28,7 +32,7 @@ class HueSender(threading.Thread):
     def run(self):
         logger.info('starting hue sender')
         if 'a' in self.daemon.logging['mode']:
-            hueLogger.setLevel(self.daemon.logging['a-level'])
+            hue_logger.setLevel(self.daemon.logging['a-level'])
         self.bridge = Bridge('192.168.3.66', "mzdWB1nVn3A3oiKw4UWriuAN73b6trclfOyBGUFa")
         self.next_update = time.time()
         self.update()
@@ -37,21 +41,16 @@ class HueSender(threading.Thread):
     def update(self):
         if self.terminate is False:
             logger.debug('fetching updates from bridge')
-            logger.debug('Fetch scenes from bridge')
             self.scenes = self.bridge.scenes
-            logger.debug('Fetch lights from bridge')
             self.lights = self.bridge.lights
-            logger.debug('Fetch groups from bridge')
             self.groups = self.bridge.groups
             self.daemon.update_devices(self)
-            self.next_update = self.next_update + 5
-            self.updateTimer = threading.Timer( self.next_update - time.time(), self.update )
+            self.next_update += 5
+            self.updateTimer = threading.Timer(self.next_update - time.time(), self.update)
             self.updateTimer.start()
-            
-    
+
     def shutdown(self):
         logger.info("Shutting down hue sender")
         if self.updateTimer is not None:
             self.updateTimer.cancel()
         self.terminate = True
-        

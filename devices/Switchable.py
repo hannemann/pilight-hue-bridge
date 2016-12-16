@@ -62,8 +62,7 @@ class Switchable(object):
             action = False
             if self.state != state:
                 action = True
-                self.switch_hue(state)
-                if self.hue.state == state:
+                if self.switch_hue(state):
                     self.pilight.state = state
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
@@ -71,8 +70,9 @@ class Switchable(object):
             self.state_callback(action)
 
     def switch_hue(self, state):
-        """ send message to bridge """
+        """ switch hue device """
         self.hue.state = state
+        return self.hue.state == state
 
     def sync(self):
         """ synchronize state and dimlevel """

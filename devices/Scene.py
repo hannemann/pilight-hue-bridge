@@ -21,6 +21,7 @@ class Scene(Switchable):
         self.log_performance('GET == init scene end')
 
     def switch_hue(self, state):
+        """ switch hue device """
         if 'on' == state:
             result = self.daemon.hue.bridge.activate_scene(self.groupId, self.id)[0]
             logger.debug('SCENE: {}'.format(result.keys()[0]))

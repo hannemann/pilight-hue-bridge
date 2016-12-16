@@ -36,31 +36,9 @@ class Dimmable(Switchable):
     def dimlevel(self, dimlevel):
         """ dim hue device """
         logger.debug('Dimmimg ' + self.type + ' ' + self.name + ' to dimlevel ' + str(dimlevel))
-        self.update_hue_device(dimlevel)
+        self.hue.dimlevel = dimlevel
         self.update_pilight_device(dimlevel)
         Switchable.state.fset(self, 'on' if dimlevel > 0 else 'off')
-            
-    def update_hue_device(self, dimlevel):
-        """ update hue device """
-        if self.bri != dimlevel:
-            logger.debug('Dimmimg hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
-            param = {
-                "bri": dimlevel if dimlevel > 0 else 1
-            }
-            state = 'on' if dimlevel > 0 else 'off'
-            if state != self.state:
-                param['on'] = state == 'on'
-            result = self.send_to_bridge(param)
-            success = result[0][0].keys()[0]
-            logger.debug(
-                'DIMMER: {1} {2} apply dimlevel of {0}: {3}'.format(
-                    dimlevel, self.type, self.name, success
-                )
-            )
-            if 'success' == success:
-                self.bri = dimlevel
-        else:
-            logger.debug('Hue: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
 
     def update_pilight_device(self, dimlevel):
         """ update pilight device to reflect hue state """
@@ -84,7 +62,7 @@ class Dimmable(Switchable):
             "on": True,
             "bri": from_bri
         }
-        result = self.send_to_bridge(param)
+        result = self.hue.send_to_bridge(param)
         logger.debug(
             'TRANSITION: apply start values to {0} {1}: {2}'.format(
                 self.type, self.name, result[0][0].keys()[0]
@@ -98,7 +76,7 @@ class Dimmable(Switchable):
             "transitiontime": tt,
             "on": to_bri > 0
         }
-        result = self.send_to_bridge(param)
+        result = self.hue.send_to_bridge(param)
         logger.debug(
             'TRANSITION: apply end values to {0} {1}: {2}'.format(
                 self.type, self.name, result[0][0].keys()[0]
@@ -107,7 +85,7 @@ class Dimmable(Switchable):
                 
     def can_sync(self):
         """ determine if sync is applicable """
-        return self.hueState != self._state or self.bri != self.dimlevel
+        return self.hue.state != self.state or self.hue.dimlevel != self.dimlevel
 
     def can_modify(self, config):
         """

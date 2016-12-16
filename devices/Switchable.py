@@ -1,5 +1,6 @@
 import logging
 from pilight.Switch import Switch as PilightSwitch
+from hue.Light import Light as HueLight
 
 logger = logging.getLogger('daemon')
 
@@ -18,7 +19,9 @@ class Switchable(object):
         self.lightName = ''
         self.action = 'toggle'
         self._state = None
-        self.hueState = self.get_initial_state(hue_values)
+
+        self.hue = self.init_hue_device(hue_values, hue_id)
+
         self.state_callbacks = []
         
     def get_pilight_name(self):
@@ -42,6 +45,10 @@ class Switchable(object):
         if self.pilight_name in self.daemon.pilight.devices:
             pilight = self.daemon.pilight.devices[self.pilight_name]
             self.pilight = self.get_pilight_class()(self.daemon, self.pilight_name, pilight)
+
+    def init_hue_device(self, hue_values, hue_id):
+        """ initialize hue device """
+        return HueLight(self.daemon, hue_values, hue_id)
             
     @property
     def state(self):
@@ -56,7 +63,8 @@ class Switchable(object):
             action = False
             if self._state != state:
                 action = True
-                if self.switch_hue(state):
+                self.switch_hue(state)
+                if self.hue.state == state:
                     self._state = state
             else:
                 logger.debug('Hue ' + self.type + ' ' + self.name + ' is already ' + state)
@@ -66,31 +74,21 @@ class Switchable(object):
 
     def switch_hue(self, state):
         """ send message to bridge """
-        logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
-        param = {
-            "on": state == 'on'
-        }
-        result = self.send_to_bridge(param)[0][0]
-        logger.debug(
-            'SWITCH: {0} {1} {2}: {3}'.format(
-                self.type, self.name, state, result.keys()[0]
-            )
-        )
-        return 'success' == result.keys()[0]
+        self.hue.state = state
 
     def sync(self):
         """ synchronize state and dimlevel """
         if self.pilight is not None:
             param = self.get_sync_param()
             if self.can_sync():
-                result = self.send_to_bridge(param)[0][0]
+                result = self.hue.send_to_bridge(param)[0][0]
                 logger.debug(
                     'SYNC: {0} {1}: {2}'.format(self.type, self.name, result.keys()[0])
                 )
                 
     def can_sync(self):
         """ determine if sync is applicable """
-        return self.hueState != self._state
+        return self.hue.state != self.state
         
     def get_sync_param(self):
         """ retrieve sync param """
@@ -112,17 +110,6 @@ class Switchable(object):
         """ call state callbacks """
         for func in self.state_callbacks:
             func(StateEvent(action, self))
-
-    @staticmethod
-    def get_initial_state(hue_values):
-        """ retrieve inital state """
-        on = False
-        if 'action' in hue_values and 'on' in hue_values['action']:
-            on = hue_values['action']['on']
-        elif 'state' in hue_values and 'on' in hue_values['state']:
-            on = hue_values['state']['on']
-
-        return 'on' if on else 'off'
 
 
 class StateEvent(object):

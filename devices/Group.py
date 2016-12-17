@@ -22,8 +22,7 @@ class Group(Dimmable):
         self.lightName = 'all'
         self.type = 'group'
         self.init_pilight_device()
-        self.lock_set_average = False
-        self.lock_sync_scene = False
+        self.light_modified_callbacks_locked = False
         self.log_performance('GET init group end')
         self.hue_lights = False
 
@@ -84,6 +83,10 @@ class Group(Dimmable):
 
         return self.hue_lights
 
+    def reset_hue_lights(self):
+        self.hue_lights = None
+        return self
+
     @property
     def dimlevel(self):
         return self.pilight.dimlevel
@@ -109,37 +112,34 @@ class Group(Dimmable):
                     self.scenes[scene].state = 'off'
                     time.sleep(.2)
 
-            self.lock_set_average = True
-            self.hue_lights = None
-            self.activeScene.sync_pilight(self.lights)
-            self.lock_set_average = False
+            self.lock_light_callbacks()\
+                .reset_hue_lights()\
+                .activeScene.sync_pilight(self.lights)
+            self.release_light_callbacks()
             self.set_light_average()
             
-    def sync_active_scene(self):
+    def check_active_scene(self):
         """ synchronize active scene """
-        if self.lock_sync_scene is True:
-            return
+        self.reset_hue_lights()
+        if self.active_scene_remains() is False:
+            self.activeScene = None
+            for scene in self.scenes.values():
+                if scene.is_active(self.get_hue_lights()):
+                    logger.debug('CHECK SCENE: activating scene {}'.format(scene.name))
+                    self.activate_scene(scene.name)
+                    break
+                else:
+                    if scene.state == 'on':
+                        logger.debug('CHECK SCENE: switching scene {} off'.format(scene.name))
+                        scene.state = 'off'
+        return self
 
-        lights = self.get_hue_lights()
-
-        if self.has_active_scene() and self.activeScene.is_active(lights):
+    def active_scene_remains(self):
+        """ determine if we have an active scene """
+        if self.has_active_scene() and self.activeScene.is_active(self.get_hue_lights()):
             logger.debug('CHECK SCENE: current active scene remains active')
-            return
-
-        self.lock_sync_scene = True
-            
-        self.activeScene = None
-        for scene in self.scenes.values():
-            if scene.is_active(lights):
-                logger.debug('CHECK SCENE: activating scene {}'.format(scene.name))
-                self.activate_scene(scene.name)
-                break
-            else:
-                if scene.state == 'on':
-                    logger.debug('CHECK SCENE: switching scene {} off'.format(scene.name))
-                    scene.state = 'off'
-
-        self.lock_sync_scene = False
+            return True
+        return False
                 
     def sync_with_hue(self, lights):
         # , group
@@ -170,41 +170,51 @@ class Group(Dimmable):
 
         if self.has_active_scene():
             self.activeScene.state = 'on'
-            self.lock_set_average = True
-            self.hue_lights = None
-            self.activeScene.sync_pilight(self.lights)
-            self.lock_set_average = False
+
+            self.lock_light_callbacks()\
+                .reset_hue_lights()\
+                .activeScene.sync_pilight(self.lights)
+            self.release_light_callbacks()
 
         for light in self.lights.values():
             light.sync()
 
         self.set_light_average()
 
+    def lock_light_callbacks(self):
+        self.light_modified_callbacks_locked = True
+        return self
+
+    def release_light_callbacks(self):
+        self.light_modified_callbacks_locked = False
+        return self
+
+    def can_execute_light_callback(self, e):
+        return self.light_modified_callbacks_locked is False and e.action and self.has_light(e.origin.name)
+
     def light_dimmmed(self, e):
         """ callback if dimlevel has changed """
-        if e.action and self.has_light(e.origin.name):
-            if self.lock_set_average is False:
-                self.set_light_average()
-            if self.lock_sync_scene is False:
-                self.hue_lights = None
-                self.sync_active_scene()
+        if self.can_execute_light_callback(e):
+            self.lock_light_callbacks()\
+                .check_active_scene()\
+                .set_light_average()\
+                .release_light_callbacks()
 
     def light_switched(self, e):
         """ callback if state has changed """
-        if e.action and self.has_light(e.origin.name):
-            if self.lock_sync_scene is False:
-                self.hue_lights = None
-                self.sync_active_scene()
+        if self.can_execute_light_callback(e):
+            self.lock_light_callbacks()\
+                .check_active_scene()\
+                .release_light_callbacks()
 
     def set_light_average(self):
         """ get average and update pilight device """
-        self.lock_set_average = True
         if self.pilight is not None:
             avg = int(self.get_average_dimlevel())
             if self.pilight.dimlevel != avg:
                 self.pilight.reset_dimlevel()
                 self.update_pilight_device(avg)
-        self.lock_set_average = False
+        return self
 
     def get_average_dimlevel(self):
         """
@@ -221,23 +231,24 @@ class Group(Dimmable):
         compute dimlevels for lights in group if
         mimics behaviour of app
         """
-        if dimlevel > self.dimlevel:
-            logger.debug('GROUP: calc factor: f = (254 - {}) / (254 - {})'.format(dimlevel, self.dimlevel))
-            f = float((254 - dimlevel)) / float((254 - self.dimlevel))
-        else:
-            logger.debug('GROUP: calc factor: f = {} / {}'.format(dimlevel, self.dimlevel))
-            f = float(dimlevel) / float(self.dimlevel)
-
-        logger.debug('GROUP: factor {}'.format(f))
-
-        self.lock_set_average = True
-        for light in self.lights.values():
+        if 'on' == self.state:
             if dimlevel > self.dimlevel:
-                dlvl = 254 - (254 - float(light.dimlevel)) * f
+                logger.debug('GROUP: calc factor: f = (254 - {}) / (254 - {})'.format(dimlevel, self.dimlevel))
+                f = float((254 - dimlevel)) / float((254 - self.dimlevel))
             else:
-                dlvl = max(1, float(light.dimlevel)) * f
-            light.dimlevel = int(round(dlvl))
-        self.lock_set_average = False
+                logger.debug('GROUP: calc factor: f = {} / {}'.format(dimlevel, self.dimlevel))
+                f = float(dimlevel) / float(self.dimlevel)
+
+            logger.debug('GROUP: factor {}'.format(f))
+
+            self.lock_light_callbacks()
+            for light in self.lights.values():
+                if dimlevel > self.dimlevel:
+                    dlvl = 254 - (254 - float(light.dimlevel)) * f
+                else:
+                    dlvl = max(1, float(light.dimlevel)) * f
+                light.dimlevel = int(round(dlvl))
+            self.release_light_callbacks()
 
         return self
 

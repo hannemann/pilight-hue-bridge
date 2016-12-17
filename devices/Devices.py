@@ -69,7 +69,7 @@ class Devices(object):
             lights = self.daemon.hue.bridge.get_light()
             groups = self.daemon.hue.bridge.get_group()
             for group in self.groups.values():
-                group.sync_active_scene(lights)
+                group.check_active_scene(lights)
                 logger.debug('Group {0} has active scene: {1}'.format(group.name, group.has_active_scene()))
                 if group.has_active_scene() is False:
                     hue_group = groups[str(group.id)]

@@ -49,8 +49,7 @@ class Light(object):
                 "bri": dimlevel if dimlevel > 0 else 1
             }
             state = 'on' if dimlevel > 0 else 'off'
-            if state != self.state:
-                param['on'] = state == 'on'
+            param['on'] = state == 'on'
             result = self.send_to_bridge(param)
             success = result[0][0].keys()[0]
             logger.debug(

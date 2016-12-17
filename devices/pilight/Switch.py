@@ -36,7 +36,8 @@ class Switch(object):
 
     def update_pilight(self):
         """ send updates to pilight """
-        self.pilight.send_message(self.get_message())
+        message = self.get_message()
+        self.pilight.send_message(message)
 
     def get_message(self):
         """ retrieve pilight message """
@@ -44,6 +45,6 @@ class Switch(object):
             "action": "control",
             "code": {
                 "device": self.name,
-                "state": self._state
+                "state": self.state
             }
         }

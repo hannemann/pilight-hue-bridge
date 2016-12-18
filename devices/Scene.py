@@ -37,7 +37,7 @@ class Scene(Switchable):
             light.update_pilight_device(dimlevel)
             logger.debug(
                 'Set pilight attributes: bri={}, state={}'.format(
-                    str(light.bri), light.pilight.state
+                    str(light.hue.dimlevel), light.pilight.state
                 )
             )
         logger.debug('SYNCSCENE: ==============')

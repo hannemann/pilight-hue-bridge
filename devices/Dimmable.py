@@ -11,7 +11,6 @@ class Dimmable(Switchable):
     def __init__(self, daemon, hue_values, hue_id):
         """ initialize """
         Switchable.__init__(self, daemon, hue_values, hue_id)
-        self.bri = self.get_initial_brightness(hue_values)
         self.action = 'bri'
         self.transition_timer = None
         self.dimlevel_callbacks = []
@@ -104,17 +103,6 @@ class Dimmable(Switchable):
     def dimlevel_callback(self, action):
         for func in self.dimlevel_callbacks:
             func(DimlevelEvent(action, self))
-
-    @staticmethod
-    def get_initial_brightness(hue_values):
-        """ retrieve initial brightness """
-        bri = None
-        if 'action' in hue_values and 'bri' in hue_values['action']:
-            bri = hue_values['action']['bri']
-        elif 'state' in hue_values and 'bri' in hue_values['state']:
-            bri = hue_values['state']['bri']
-
-        return bri
 
 
 class DimlevelEvent(object):

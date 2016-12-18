@@ -61,7 +61,7 @@ class DeviceParser(object):
                 name = pilight_device['name']
                 if 'scene' == pilight_device['type']:
                     self.container.pilightDevices['groups'][group]['scenes'][name] = pilight_device
-                if 'light' == pilight_device['type'] and 'bri' == pilight_device['action']:
+                if 'light' == pilight_device['type'] and 'dim' == pilight_device['action']:
                     self.container.pilightDevices['lights'][name] = pilight_device
                 if 'light' == pilight_device['type'] and 'transition' == pilight_device['action']:
                     self.container.pilightDevices['lights'][pilight_device['pilight_name']] = pilight_device

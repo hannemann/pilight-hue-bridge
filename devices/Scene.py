@@ -36,7 +36,7 @@ class Scene(Switchable):
             light.hue.dimlevel = dimlevel
             light.update_pilight_device(dimlevel)
             logger.debug(
-                'Set pilight attributes: bri={}, state={}'.format(
+                'Set pilight attributes: dimlevel={}, state={}'.format(
                     str(light.hue.dimlevel), light.pilight.state
                 )
             )

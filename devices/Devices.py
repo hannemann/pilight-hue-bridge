@@ -114,7 +114,7 @@ class Devices(object):
     def process_group(self, config):
         """ process group """
         group = self.groups[config['group']]
-        if 'bri' == config['action'] and group.can_modify(config):
+        if 'dim' == config['action'] and group.can_modify(config):
             logger.debug('GROUP: Modifying {}'.format(config['group']))
             if config['dimlevel'] is not None:
 
@@ -132,7 +132,7 @@ class Devices(object):
         group = self.groups[config['group']]
         light = group.lights[config['name']]
         
-        if 'bri' == config['action'] and light.can_modify(config):
+        if 'dim' == config['action'] and light.can_modify(config):
             logger.debug('LIGHT: Modifying ' + light.name + ' in group ' + group.name)
             if config['dimlevel'] is not None:
                 logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))

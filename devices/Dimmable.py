@@ -11,7 +11,7 @@ class Dimmable(Switchable):
     def __init__(self, daemon, hue_values, hue_id):
         """ initialize """
         Switchable.__init__(self, daemon, hue_values, hue_id)
-        self.action = 'bri'
+        self.action = 'dim'
         self.transition_timer = None
         self.dimlevel_callbacks = []
 

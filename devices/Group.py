@@ -147,25 +147,22 @@ class Group(Dimmable):
             return True
         return False
                 
-    def sync_with_hue(self, lights):
-        # , group
+    def sync_with_hue(self, hue_lights):
         """ synchronize pilight lights with hue lights """
-
-        for lightId in lights:
-            light = lights[lightId]
-            name = light['name']
-            if self.has_light(name):
-                update_light = self.lights[name]
-                state = 'on' if light['state']['on'] is True else 'off'
-                dimlevel = light['state']['bri']
-                # logger.debug('{}: {} -> {}, {}'.format(lightId, update_light.name, state, dimlevel))
+        self.lock_light_callbacks()
+        for lightId in hue_lights:
+            hue = hue_lights[lightId]
+            if self.has_light(hue['name']):
+                update_light = self.lights[hue['name']]
+                state = 'on' if hue['state']['on'] is True else 'off'
                 if 'on' == state:
-                    update_light.dimlevel = dimlevel
+                    update_light.dimlevel = hue['state']['bri']
                 else:
                     update_light.state = state
 
         if self.pilight is not None:
-            self.dimlevel = int(self.get_average_dimlevel())
+            self.set_light_average()
+        self.release_light_callbacks()
 
     def sync_with_pilight(self):
         """ synchronize hue devices with pilight devices """

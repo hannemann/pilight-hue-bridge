@@ -56,31 +56,24 @@ class Devices(object):
             if 'group' == config['type']:
                 """ process group """
                 self.process_group(config)
-                # self.set_group_scene_switches()
                 
             if 'light' == config['type']:
                 """ process light """
                 self.process_light(config)
-                # self.set_group_scene_switches()
     
     def update_devices(self, module=None):
         """ process config updates """
-        return
+        # return
         if isinstance(module, HueSender):            
             lights = self.daemon.hue.bridge.get_light()
             groups = self.daemon.hue.bridge.get_group()
             for group in self.groups.values():
-                group.check_active_scene(lights)
+                group.check_active_scene()
                 logger.debug('Group {0} has active scene: {1}'.format(group.name, group.has_active_scene()))
                 if group.has_active_scene() is False:
                     hue_group = groups[str(group.id)]
                     logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['action']['on']))
-                    group.sync_with_hue(lights, hue_group)
-
-    # def set_group_scene_switches(self):
-    #     lights = self.daemon.hue.bridge.get_light()
-    #     for group in self.groups.values():
-    #         group.sync_active_scene(lights)
+                    group.sync_with_hue(lights)
             
     def get_update_config(self, u):
         """ parse update """

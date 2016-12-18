@@ -1,6 +1,6 @@
 from Switchable import Switchable
 from pilight.Dimmer import Dimmer as PilightDimmer
-import time
+from threading import Timer
 import logging
 
 logger = logging.getLogger('daemon')
@@ -13,6 +13,7 @@ class Dimmable(Switchable):
         Switchable.__init__(self, daemon, hue_values, hue_id)
         self.bri = self.get_initial_brightness(hue_values)
         self.action = 'bri'
+        self.transition_timer = None
         self.dimlevel_callbacks = []
 
     def get_pilight_class(self):
@@ -57,34 +58,26 @@ class Dimmable(Switchable):
         
     def set_transition(self, config):
         """ apply transition """
+        if self.transition_timer is not None:
+            self.transition_timer.cancel()
         self.state = 'on'
-        from_bri = int(config['fromBri'])
-        to_bri = int(config['toBri'])
+        fr = int(config['fr'])
+        to = int(config['to'])
         tt = int(config['transitiontime'])
-        param = {
-            "on": True,
-            "bri": from_bri
-        }
-        result = self.hue.send_to_bridge(param)
-        logger.debug(
-            'TRANSITION: apply start values to {0} {1}: {2}'.format(
-                self.type, self.name, result[0][0].keys()[0]
-            )
-        )
-        
-        time.sleep(.5)
-        
-        param = {
-            "bri": to_bri,
-            "transitiontime": tt,
-            "on": to_bri > 0
-        }
-        result = self.hue.send_to_bridge(param)
-        logger.debug(
-            'TRANSITION: apply end values to {0} {1}: {2}'.format(
-                self.type, self.name, result[0][0].keys()[0]
-            )
-        )
+        self.hue.set_transition(fr, to, tt)
+        self.transition_timer = Timer(tt / 10, self.cancel_transition, [config])
+        self.transition_timer.start()
+
+    def cancel_transition(self, config):
+        """ cancel transition """
+        if self.transition_timer is not None:
+            self.transition_timer.cancel()
+            self.transition_timer = None
+
+        tmp = self.pilight.name
+        self.pilight.name = config['pilight_device']
+        self.pilight.state = 'off'
+        self.pilight.name = tmp
                 
     def can_sync(self):
         """ determine if sync is applicable """

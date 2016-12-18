@@ -61,8 +61,10 @@ class DeviceParser(object):
                 name = pilight_device['name']
                 if 'scene' == pilight_device['type']:
                     self.container.pilightDevices['groups'][group]['scenes'][name] = pilight_device
-                if 'light' == pilight_device['type']:
+                if 'light' == pilight_device['type'] and 'bri' == pilight_device['action']:
                     self.container.pilightDevices['lights'][name] = pilight_device
+                if 'light' == pilight_device['type'] and 'transition' == pilight_device['action']:
+                    self.container.pilightDevices['lights'][pilight_device['pilight_name']] = pilight_device
 
     def init_groups(self):
         """ initialize groups """
@@ -96,6 +98,7 @@ class DeviceParser(object):
         light_type = pilight_config[1]
         group = pilight_config[2]
         name = pilight_config[3]
+        action = pilight_config[4]
         if group not in self.container.pilightDevices['groups']:
             self.add_pilight_group(group)
 
@@ -109,10 +112,11 @@ class DeviceParser(object):
         return {
             "type": light_type,
             "name": name,
-            "pilightName": device,
+            "pilight_name": device,
             "group": group,
             "state": state,
-            "dimlevel": dimlevel
+            "dimlevel": dimlevel,
+            "action": action
         }
 
     @staticmethod
@@ -121,15 +125,16 @@ class DeviceParser(object):
         max_len = 8
         config = device.split('_')
         config += [None] * (max_len - len(config))
-        hue, config_type, group, name, action, from_bri, to_bri, tr = config
+        hue, config_type, group, name, action, fr, to, tr = config
         return {
             "type": config_type,
             "group": group,
             "name": name,
             "action": action,
-            "fromBri": from_bri,
-            "toBri": to_bri,
-            "transitiontime": tr
+            "fr": fr,
+            "to": to,
+            "transitiontime": tr,
+            "pilight_device": device
         }
 
     def add_pilight_group(self, group):

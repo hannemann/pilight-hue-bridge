@@ -14,7 +14,8 @@ class Devices(object):
     lights = {}
     pilightDevices = {
             'groups': {},
-            'lights': {}
+            'lights': {},
+            'transitions': {}
         }
         
     def __init__(self, daemon):
@@ -147,8 +148,8 @@ class Devices(object):
                 light.set_transition(config)
                 
             elif 'off' == config['state'] is not None:
-                logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
-                light.state = config['state']
+                logger.info('End transition on light ' + group.name + ' ' + config['name'])
+                light.cancel_transition(config)
         
         if 'toggle' == config['action'] and config['state'] is not None:
             logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])

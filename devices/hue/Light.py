@@ -1,4 +1,5 @@
 import logging
+import time
 
 logger = logging.getLogger('daemon')
 
@@ -13,6 +14,7 @@ class Light(object):
         self.name = hue_values['name']
         self._state = self.get_initial_state(hue_values)
         self._dimlevel = self.get_initial_brightness(hue_values)
+        self._transition_time = None
 
     @property
     def state(self):
@@ -44,16 +46,24 @@ class Light(object):
     def dimlevel(self, dimlevel):
         """ update hue device """
         if self.dimlevel != dimlevel:
-            logger.debug('Dimmimg hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
+            logger.debug('DIMMER: Dimming hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
             param = {
                 "bri": dimlevel if dimlevel > 0 else 1
             }
             state = 'on' if dimlevel > 0 else 'off'
             param['on'] = state == 'on'
+            if self._transition_time is not None:
+                logger.debug(
+                    'TRANSITION: apply transition time {2} to {0} {1}'.format(
+                        self.type, self.name, self._transition_time
+                    )
+                )
+                param['transitiontime'] = self._transition_time
+                self._transition_time = None
             result = self.send_to_bridge(param)
             success = result[0][0].keys()[0]
             logger.debug(
-                'DIMMER: {1} {2} apply dimlevel of {0}: {3}'.format(
+                '{1} {2} apply dimlevel of {0}: {3}'.format(
                     dimlevel, self.type, self.name, success
                 )
             )
@@ -61,6 +71,13 @@ class Light(object):
                 self._dimlevel = dimlevel
         else:
             logger.debug('Hue: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
+
+    def set_transition(self, fr, to, tt):
+        """ set transition """
+        self.dimlevel = fr
+        time.sleep(.5)
+        self._transition_time = tt
+        self.dimlevel = to
 
     def send_to_bridge(self, param):
         """ send param to setter according to type

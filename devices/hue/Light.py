@@ -13,7 +13,7 @@ class Light(object):
         self.id = hue_id
         self.name = hue_values['name']
         self._state = self.get_initial_state(hue_values)
-        self._dimlevel = self.get_initial_brightness(hue_values)
+        self._dimlevel = self.get_initial_dimlevel(hue_values)
         self._transition_time = None
 
     @property
@@ -97,12 +97,12 @@ class Light(object):
         return 'on' if on else 'off'
 
     @staticmethod
-    def get_initial_brightness(hue_values):
+    def get_initial_dimlevel(hue_values):
         """ retrieve initial brightness """
-        bri = None
+        dimlevel = None
         if 'action' in hue_values and 'bri' in hue_values['action']:
-            bri = hue_values['action']['bri']
+            dimlevel = hue_values['action']['bri']
         elif 'state' in hue_values and 'bri' in hue_values['state']:
-            bri = hue_values['state']['bri']
+            dimlevel = hue_values['state']['bri']
 
-        return bri
+        return dimlevel

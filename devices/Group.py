@@ -97,6 +97,7 @@ class Group(Dimmable):
         if dimlevel != self.dimlevel:
             self.set_average_dependent_dimlevels(dimlevel)\
                 .update_pilight_device(dimlevel)
+            self.check_active_scene()
         else:
             logger.debug('pilight: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
 
@@ -168,18 +169,18 @@ class Group(Dimmable):
                 self.activeScene = scene
                 break
 
+        self.lock_light_callbacks()
         if self.has_active_scene():
             self.activeScene.state = 'on'
 
-            self.lock_light_callbacks()\
-                .reset_hue_lights()\
+            self.reset_hue_lights()\
                 .activeScene.sync_pilight(self.lights)
-            self.release_light_callbacks()
 
         for light in self.lights.values():
             light.sync()
 
         self.set_light_average()
+        self.release_light_callbacks()
 
     def lock_light_callbacks(self):
         self.light_modified_callbacks_locked = True

@@ -43,6 +43,7 @@ class Dimmable(Switchable):
             logger.debug('pilight: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
 
         self.dimlevel_callback(action)
+        return self
         
     def set_transition(self, config):
         """ apply transition """

@@ -118,7 +118,7 @@ class Devices(object):
             if config['dimlevel'] is not None:
 
                 logger.info('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
-                self.groups[config['group']].dimlevel = config['dimlevel']
+                group.dimlevel = config['dimlevel']
 
             elif config['state'] is not None:
 

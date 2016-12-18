@@ -40,7 +40,7 @@ class Devices(object):
             if name in self.groups:
                 self.groups[name].sync_with_pilight()
 
-    def update(self, u):
+    def user_update(self, u):
         """ process device updates """
         config = self.get_update_config(u)
         if config is not False:
@@ -61,7 +61,7 @@ class Devices(object):
                 """ process light """
                 self.process_light(config)
     
-    def update_devices(self, module=None):
+    def recurring_update(self, module=None):
         """ process config updates """
         # return
         if isinstance(module, HueSender):            

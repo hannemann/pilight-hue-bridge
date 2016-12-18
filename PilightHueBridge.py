@@ -76,20 +76,22 @@ class PilightHueBridge(object):
             finally:
                 self.lock.release()
         else:
-            if not self.lock.acquire(isinstance(module, Pilight)):
-                logger.debug('Devices blocked by pilight, discarding update')
+            if not self.lock.acquire(False):
+                logger.debug('RECURRING-UPDATE: Devices blocked by pilight, discarding update')
             else:
                 try:
-                    self.devices.update_devices(module)
+                    self.devices.recurring_update(module)
                 finally:
                     self.lock.release()
         
-    def proxy_update(self, update):
-        try:
-            self.lock.acquire()
-            self.devices.update(update)
-        finally:
-            self.lock.release()
+    def user_update(self, update):
+        if not self.lock.acquire(False):
+            logger.debug('USER-UPDATE: Devices blocked by pilight, discarding update')
+        else:
+            try:
+                self.devices.user_update(update)
+            finally:
+                self.lock.release()
         
     @staticmethod
     def dump_json(obj):

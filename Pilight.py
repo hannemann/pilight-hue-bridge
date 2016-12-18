@@ -112,7 +112,7 @@ class Pilight(threading.Thread):
                                     logger.debug(f)
                                     j = json.loads(f)
                                     if 'origin' in j and j['origin'] == "update":
-                                        self.daemon.proxy_update(j)
+                                        self.daemon.user_update(j)
                                     if 'config' in j and self.getConfigFlag is True:
                                         self.getConfigFlag = False
                                         self.receiver.parse_config(j)

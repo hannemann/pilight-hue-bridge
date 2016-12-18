@@ -1,12 +1,14 @@
 from HueSender import HueSender
 from DeviceParser import DeviceParser
+import threading
+import time
 import logging
 
 logger = logging.getLogger('daemon')
 
 
-class Devices(object):
-    
+class Devices(threading.Thread):
+
     performanceLogging = False
     
     groups = {}
@@ -19,10 +21,16 @@ class Devices(object):
         }
         
     def __init__(self, daemon):
-        """ initialize """        
+        """ initialize """
+        threading.Thread.__init__(self, name='devices')
         self.daemon = daemon
         self.parser = DeviceParser(self)
+        self.lock = threading.Lock()
         logger.info('Devices container initialized')
+
+    def run(self):
+        while True:
+            time.sleep(0.1)
         
     def init_devices(self):
         """ initialize devices """
@@ -44,36 +52,50 @@ class Devices(object):
         """ process device updates """
         config = self.get_update_config(u)
         if config is not False:
-            """
-            logger.debug(config)
-            logger.debug(config['state'])
-            logger.debug(config['dimlevel'])
-            """
-            if 'scene' == config['type']:
-                """ process scene """
-                self.process_scene(config)
-                
-            if 'group' == config['type']:
-                """ process group """
-                self.process_group(config)
-                
-            if 'light' == config['type']:
-                """ process light """
-                self.process_light(config)
+            if not self.lock.acquire(False):
+                logger.debug('USER-UPDATE: update in progress... blocked user input')
+            else:
+                try:
+                    logger.debug('USER-UPDATE: update in progress... blocking further input')
+                    """
+                    logger.debug(config)
+                    logger.debug(config['state'])
+                    logger.debug(config['dimlevel'])
+                    """
+                    if 'scene' == config['type']:
+                        """ process scene """
+                        self.process_scene(config)
+
+                    if 'group' == config['type']:
+                        """ process group """
+                        self.process_group(config)
+
+                    if 'light' == config['type']:
+                        """ process light """
+                        self.process_light(config)
+                finally:
+                    logger.debug('USER-UPDATE: update ready... releasing lock')
+                    self.lock.release()
     
     def recurring_update(self, module=None):
         """ process config updates """
-        # return
-        if isinstance(module, HueSender):            
-            lights = self.daemon.hue.bridge.get_light()
-            groups = self.daemon.hue.bridge.get_group()
-            for group in self.groups.values():
-                group.check_active_scene()
-                logger.debug('Group {0} has active scene: {1}'.format(group.name, group.has_active_scene()))
-                if group.has_active_scene() is False:
-                    hue_group = groups[str(group.id)]
-                    logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['action']['on']))
-                    group.sync_with_hue(lights)
+        #return
+        if isinstance(module, HueSender):
+            if not self.lock.acquire(False):
+                logger.debug('RECURRING-UPDATE: update in progress... blocked update from bridge')
+            else:
+                try:
+                    lights = self.daemon.hue.bridge.get_light()
+                    groups = self.daemon.hue.bridge.get_group()
+                    for group in self.groups.values():
+                        group.check_active_scene()
+                        logger.debug('Group {0} has active scene: {1}'.format(group.name, group.has_active_scene()))
+                        if group.has_active_scene() is False:
+                            hue_group = groups[str(group.id)]
+                            logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['action']['on']))
+                            group.sync_with_hue(lights)
+                finally:
+                    self.lock.release()
             
     def get_update_config(self, u):
         """ parse update """

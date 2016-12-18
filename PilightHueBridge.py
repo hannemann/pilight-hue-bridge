@@ -6,10 +6,10 @@ import getopt
 import time
 import signal
 import json
-from threading import Lock
 from Pilight import Pilight
 from HueSender import HueSender
 from devices.Devices import Devices
+import threading
 import logging
 
 logFormat = '%(asctime)s %(name)s\t%(levelname)s:\t'
@@ -31,7 +31,6 @@ class PilightHueBridge(object):
         self.pilight = Pilight(self, 5)
         self.hue = HueSender(self)
         self.devices = Devices(self)
-        self.lock = Lock()
         logger.info('Daemon initialized')
         
     def init_logging(self, debugmode):
@@ -63,35 +62,19 @@ class PilightHueBridge(object):
     def update_devices(self, module):
         
         if self.devicesInitialized is False:
-            try:
-                self.lock.acquire()
-                if 'Pilight' in self.modules and isinstance(module, Pilight):
-                    self.modules.remove('Pilight')
-                elif 'HueSender' in self.modules and isinstance(module, HueSender):
-                    self.modules.remove('HueSender')
+            if 'Pilight' in self.modules and isinstance(module, Pilight):
+                self.modules.remove('Pilight')
+            elif 'HueSender' in self.modules and isinstance(module, HueSender):
+                self.modules.remove('HueSender')
 
-                if len(self.modules) == 0:
-                    self.devices.init_devices()
-                    self.devicesInitialized = True
-            finally:
-                self.lock.release()
+            if len(self.modules) == 0:
+                self.devices.init_devices()
+                self.devicesInitialized = True
         else:
-            if not self.lock.acquire(False):
-                logger.debug('RECURRING-UPDATE: Devices blocked by pilight, discarding update')
-            else:
-                try:
-                    self.devices.recurring_update(module)
-                finally:
-                    self.lock.release()
+            self.devices.recurring_update(module)
         
     def user_update(self, update):
-        if not self.lock.acquire(False):
-            logger.debug('USER-UPDATE: Devices blocked by pilight, discarding update')
-        else:
-            try:
-                self.devices.user_update(update)
-            finally:
-                self.lock.release()
+        threading.Timer(0.01, self.devices.user_update, [update]).start()
         
     @staticmethod
     def dump_json(obj):

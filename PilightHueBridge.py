@@ -63,24 +63,33 @@ class PilightHueBridge(object):
     def update_devices(self, module):
         
         if self.devicesInitialized is False:
-            
-            if 'Pilight' in self.modules and isinstance(module, Pilight):
-                self.modules.remove('Pilight')
-            elif 'HueSender' in self.modules and isinstance(module, HueSender):
-                self.modules.remove('HueSender')
-                
-            if len(self.modules) == 0:
-                self.devices.init_devices()
-                self.devicesInitialized = True
+            try:
+                self.lock.acquire()
+                if 'Pilight' in self.modules and isinstance(module, Pilight):
+                    self.modules.remove('Pilight')
+                elif 'HueSender' in self.modules and isinstance(module, HueSender):
+                    self.modules.remove('HueSender')
+
+                if len(self.modules) == 0:
+                    self.devices.init_devices()
+                    self.devicesInitialized = True
+            finally:
+                self.lock.release()
         else:
-            self.lock.acquire()
-            self.devices.update_devices(module)
-            self.lock.release()
+            if not self.lock.acquire(isinstance(module, Pilight)):
+                logger.debug('Devices blocked by pilight, discarding update')
+            else:
+                try:
+                    self.devices.update_devices(module)
+                finally:
+                    self.lock.release()
         
     def proxy_update(self, update):
-        self.lock.acquire()
-        self.devices.update(update)
-        self.lock.release()
+        try:
+            self.lock.acquire()
+            self.devices.update(update)
+        finally:
+            self.lock.release()
         
     @staticmethod
     def dump_json(obj):

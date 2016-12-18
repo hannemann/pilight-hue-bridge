@@ -20,7 +20,6 @@ class Switchable(object):
         self.action = 'toggle'
         self.hue = self.init_hue_device(hue_values, hue_id)
         self.state_callbacks = []
-        self.update_origin = None
         
     def get_pilight_name(self):
         """ initialize pilight device """
@@ -94,7 +93,7 @@ class Switchable(object):
     def get_sync_param(self):
         """ retrieve sync param """
         return {
-            "on": self.state == 'on'
+            "on": self.state == 'on' and self.daemon.devices.groups[self.groupName].state == 'on'
         }
 
     def send_to_bridge(self, param):

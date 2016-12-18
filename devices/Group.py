@@ -60,7 +60,7 @@ class Group(Dimmable):
         """ add light """
         self.lights[name] = light
         if light.pilight is not None:
-            light.register_dimlevel_callback(self.light_dimmmed)
+            light.register_dimlevel_callback(self.light_dimmed)
             light.register_state_callback(self.light_switched)
         
     def has_light(self, name):
@@ -105,6 +105,7 @@ class Group(Dimmable):
         """ activate scene """
         scene = self.get_scene(name)
         if scene is not None:
+            self.lock_light_callbacks()
             self.state = 'on'
             scene.state = 'on'
             self.activeScene = scene
@@ -113,8 +114,7 @@ class Group(Dimmable):
                     self.scenes[scene].state = 'off'
                     time.sleep(.2)
 
-            self.lock_light_callbacks()\
-                .reset_hue_lights()\
+            self.reset_hue_lights()\
                 .activeScene.sync_pilight(self.lights)
             self.release_light_callbacks()
             self.set_light_average()
@@ -193,7 +193,7 @@ class Group(Dimmable):
     def can_execute_light_callback(self, e):
         return self.light_modified_callbacks_locked is False and e.action and self.has_light(e.origin.name)
 
-    def light_dimmmed(self, e):
+    def light_dimmed(self, e):
         """ callback if dimlevel has changed """
         if self.can_execute_light_callback(e):
             self.lock_light_callbacks()\

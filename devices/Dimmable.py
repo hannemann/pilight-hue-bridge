@@ -18,7 +18,17 @@ class Dimmable(Switchable):
     def get_pilight_class(self):
         """ retrieve new pilight device class """
         return PilightDimmer
-    
+
+    @property
+    def state(self):
+        """ get state """
+        return Switchable.state.fget(self)
+
+    @state.setter
+    def state(self, state):
+        """ set state """
+        Switchable.state.fset(self, state)
+
     @property
     def dimlevel(self):
         """ retrieve dimlevel """

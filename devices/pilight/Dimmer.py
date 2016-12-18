@@ -19,6 +19,18 @@ class Dimmer(Switch):
         self.mode = 'dim'
 
     @property
+    def state(self):
+        """ get state """
+        return Switch.state.fget(self)
+
+    @state.setter
+    def state(self, state):
+        """ set state """
+        self.mode = 'switch'
+        Switch.state.fset(self, state)
+        self.mode = 'dim'
+
+    @property
     def dimlevel(self):
         """ get dimlevel """
         return self._dimlevel
@@ -29,11 +41,8 @@ class Dimmer(Switch):
         if isinstance(dimlevel, int) and self._dimlevel != dimlevel:
             logger.debug('Dimmimg pilight {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
             self._dimlevel = dimlevel
-
             self.update_pilight()
-            self.mode = 'switch'
             self.state = 'on' if self.dimlevel > 0 else 'off'
-            self.mode = 'dim'
 
     def reset_dimlevel(self):
         """ to force update """

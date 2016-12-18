@@ -20,6 +20,7 @@ class Switchable(object):
         self.action = 'toggle'
         self.hue = self.init_hue_device(hue_values, hue_id)
         self.state_callbacks = []
+        self.update_origin = None
         
     def get_pilight_name(self):
         """ initialize pilight device """

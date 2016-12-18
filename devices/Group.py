@@ -175,9 +175,9 @@ class Group(Dimmable):
 
             self.reset_hue_lights()\
                 .activeScene.sync_pilight(self.lights)
-
-        for light in self.lights.values():
-            light.sync()
+        else:
+            for light in self.lights.values():
+                light.sync()
 
         self.set_light_average()
         self.release_light_callbacks()

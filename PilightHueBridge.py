@@ -6,6 +6,7 @@ import getopt
 import time
 import signal
 import json
+from threading import Lock
 from Pilight import Pilight
 from HueSender import HueSender
 from devices.Devices import Devices
@@ -30,6 +31,7 @@ class PilightHueBridge(object):
         self.pilight = Pilight(self, 5)
         self.hue = HueSender(self)
         self.devices = Devices(self)
+        self.lock = Lock()
         logger.info('Daemon initialized')
         
     def init_logging(self, debugmode):
@@ -71,10 +73,14 @@ class PilightHueBridge(object):
                 self.devices.init_devices()
                 self.devicesInitialized = True
         else:
+            self.lock.acquire()
             self.devices.update_devices(module)
+            self.lock.release()
         
     def proxy_update(self, update):
+        self.lock.acquire()
         self.devices.update(update)
+        self.lock.release()
         
     @staticmethod
     def dump_json(obj):

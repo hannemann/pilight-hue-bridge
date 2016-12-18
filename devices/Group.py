@@ -118,6 +118,11 @@ class Group(Dimmable):
                 .activeScene.sync_pilight(self.lights)
             self.release_light_callbacks()
             self.set_light_average()
+
+    def deactivate_active_scene(self):
+        if self.has_active_scene():
+            self.activeScene.state = 'off'
+            self.activeScene = None
             
     def check_active_scene(self):
         """ synchronize active scene """

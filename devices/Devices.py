@@ -14,6 +14,7 @@ class Devices(threading.Thread):
     groups = {}
     scenes = {}
     lights = {}
+    transitions = {}
     pilightDevices = {
             'groups': {},
             'lights': {},
@@ -79,7 +80,6 @@ class Devices(threading.Thread):
     
     def recurring_update(self, module=None):
         """ process config updates """
-        #return
         if isinstance(module, HueSender):
             if not self.lock.acquire(False):
                 logger.debug('RECURRING-UPDATE: update in progress... blocked update from bridge')
@@ -144,31 +144,36 @@ class Devices(threading.Thread):
             
     def process_light(self, config):
         """ process light """
-        group = self.groups[config['group']]
-        light = group.lights[config['name']]
-        
-        if 'dim' == config['action'] and light.can_modify(config):
-            logger.debug('LIGHT: Modifying ' + light.name + ' in group ' + group.name)
-            if config['dimlevel'] is not None:
-                logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
-                light.dimlevel = config['dimlevel']
-                
-            elif config['state'] is not None:
-                logger.info(' Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
-                light.state = config['state']
-        
-        if 'transition' == config['action']:
-            if 'on' == config['state']:
-                logger.info('Set transtition on light ' + group.name + ' ' + config['name'])
-                light.set_transition(config)
-                
-            elif 'off' == config['state'] is not None:
-                logger.info('End transition on light ' + group.name + ' ' + config['name'])
-                light.cancel_transition(config)
-        
+
+        if 'dim' == config['action']:
+            group = self.groups[config['group']]
+            light = group.lights[config['name']]
+
+            if light.can_modify(config):
+                logger.debug('LIGHT: Modifying ' + light.name + ' in group ' + group.name)
+                if config['dimlevel'] is not None:
+                    logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
+                    light.dimlevel = config['dimlevel']
+
+                elif config['state'] is not None:
+                    logger.info(' Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
+                    light.state = config['state']
+
         if 'toggle' == config['action'] and config['state'] is not None:
+            group = self.groups[config['group']]
+            light = group.lights[config['name']]
             logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
             light.state = config['state']
+        
+        if 'transition' == config['action']:
+            transition = self.transitions[config['pilight_device']]
+            if 'on' == config['state']:
+                logger.info('Set transtition on light ' + config['name'])
+                transition.start()
+                
+            else:
+                logger.info('End transition on light ' + config['name'])
+                transition.cancel()
     
     def log_performance(self, message):
         if self.performanceLogging is True:

@@ -1,6 +1,9 @@
 from Scene import Scene
 from Group import Group
 from Light import Light
+from Transition import Transition
+from devices.pilight.Switch import Switch as PilightSwitch
+from devices.hue.Light import Light as HueLight
 import logging
 
 logger = logging.getLogger('daemon')
@@ -25,12 +28,25 @@ class DeviceParser(object):
         self.log_performance('GET ======== init groups end')
 
         self.log_performance('GET ======== init lights')
+        lights = {}
         for light in self.daemon.hue.lights:
             self.log_performance('GET ====== init light')
             hue_values = self.daemon.hue.bridge.get_light(light.light_id)
+            lights[light.light_id] = hue_values
             if self.can_add_light(hue_values['name']):
                 self.init_light(self.container.pilightDevices['lights'][hue_values['name']], light, hue_values)
-            self.log_performance('GET ====== init light end')
+
+        for hue_id in lights:
+            name = lights[hue_id]['name']
+            if self.can_add_transition(name):
+                for pilight_config in self.container.pilightDevices['transitions'][name].values():
+                    if name in self.container.lights:
+                        hue = self.container.lights[name].hue
+                    else:
+                        hue = HueLight(self.daemon, lights[hue_id], hue_id)
+                    transition = self.parse_device_name(pilight_config['pilight_name'])
+                    self.init_transition(transition, pilight_config, hue)
+
         self.log_performance('GET ======== init lights end')
 
         self.log_performance('GET ======== parse scenes')
@@ -61,10 +77,12 @@ class DeviceParser(object):
                 name = pilight_device['name']
                 if 'scene' == pilight_device['type']:
                     self.container.pilightDevices['groups'][group]['scenes'][name] = pilight_device
-                if 'light' == pilight_device['type'] and 'dim' == pilight_device['action']:
-                    self.container.pilightDevices['lights'][name] = pilight_device
-                if 'light' == pilight_device['type'] and 'transition' == pilight_device['action']:
-                    self.container.pilightDevices['lights'][pilight_device['pilight_name']] = pilight_device
+                if 'light' == pilight_device['type']:
+                    if 'dim' == pilight_device['action']:
+                        self.container.pilightDevices['lights'][name] = pilight_device
+                    elif 'transition' == pilight_device['action']:
+                        pilight_name = pilight_device['pilight_name']
+                        self.container.pilightDevices['transitions'][name][pilight_name] = pilight_device
 
     def init_groups(self):
         """ initialize groups """
@@ -75,8 +93,16 @@ class DeviceParser(object):
     def init_light(self, pilight, light, hue_values):
         """ initialize light """
         light = Light(self.daemon, pilight, hue_values, light.light_id)
+        self.container.lights[light.name] = light
         self.container.groups[pilight['group']].add_light(
             pilight['name'], light
+        )
+
+    def init_transition(self, transition_config, pilight_config, hue):
+        self.container.transitions[pilight_config['pilight_name']] = Transition(
+            transition_config,
+            PilightSwitch(self.daemon, pilight_config['pilight_name'], pilight_config),
+            hue
         )
 
     def init_scene(self, group, pilight_scene, hue_id):
@@ -101,6 +127,9 @@ class DeviceParser(object):
         action = pilight_config[4]
         if group not in self.container.pilightDevices['groups']:
             self.add_pilight_group(group)
+
+        if 'transition' == action and name not in self.container.pilightDevices['transitions']:
+            self.container.pilightDevices['transitions'][name] = {}
 
         pilight_config = self.daemon.pilight.devices[device]
         state = None
@@ -146,6 +175,10 @@ class DeviceParser(object):
     def can_add_light(self, hue_light):
         """ can add light? """
         return hue_light in self.container.pilightDevices['lights']
+
+    def can_add_transition(self, light_name):
+        """ can add transition? """
+        return light_name in self.container.pilightDevices['transitions']
 
     def can_add_light_to_group(self, hue_light):
         """ can add light to group? """

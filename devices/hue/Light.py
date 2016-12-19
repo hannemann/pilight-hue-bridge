@@ -15,6 +15,7 @@ class Light(object):
         self._state = self.get_initial_state(hue_values)
         self._dimlevel = self.get_initial_dimlevel(hue_values)
         self._transition_time = None
+        self._transition_in_progress = False
 
     @property
     def state(self):
@@ -24,18 +25,19 @@ class Light(object):
     @state.setter
     def state(self, state):
         """ set state """
-        logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
-        param = {
-            "on": state == 'on'
-        }
-        result = self.send_to_bridge(param)[0][0]
-        logger.debug(
-            'SWITCH: {0} {1} {2}: {3}'.format(
-                self.type, self.name, state, result.keys()[0]
+        if self._transition_in_progress is False:
+            logger.debug('Switching hue ' + self.type + ' ' + self.name + ' ' + state)
+            param = {
+                "on": state == 'on'
+            }
+            result = self.send_to_bridge(param)[0][0]
+            logger.debug(
+                'SWITCH: {0} {1} {2}: {3}'.format(
+                    self.type, self.name, state, result.keys()[0]
+                )
             )
-        )
-        if 'success' == result.keys()[0]:
-            self._state = state
+            if 'success' == result.keys()[0]:
+                self._state = state
 
     @property
     def dimlevel(self):
@@ -45,7 +47,7 @@ class Light(object):
     @dimlevel.setter
     def dimlevel(self, dimlevel):
         """ update hue device """
-        if self.dimlevel != dimlevel:
+        if self.dimlevel != dimlevel and self._transition_in_progress is False:
             logger.debug('DIMMER: Dimming hue {} {} to dimlevel {}'.format(self.type, self.name, dimlevel))
             param = {
                 "bri": dimlevel if dimlevel > 0 else 1
@@ -78,6 +80,18 @@ class Light(object):
         time.sleep(.5)
         self._transition_time = tt
         self.dimlevel = to
+        self._transition_in_progress = True
+
+    def cancel_transition(self):
+        self.reset_transition()
+        self.state = 'on'
+
+    def end_transition(self):
+        self.reset_transition()
+
+    def reset_transition(self):
+        self._transition_time = None
+        self._transition_in_progress = False
 
     def send_to_bridge(self, param):
         """ send param to setter according to type

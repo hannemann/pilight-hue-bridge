@@ -74,6 +74,12 @@ class Light(object):
         else:
             logger.debug('Hue: {} {} dimlevel {} already applied'.format(self.type, self.name, str(dimlevel)))
 
+    def update_dimlevel(self, dimlevel):
+        self._dimlevel = dimlevel
+
+    def update_state(self, state):
+        self._state = state
+
     def set_transition(self, fr, to, tt):
         """ set transition """
         self.dimlevel = fr

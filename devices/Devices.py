@@ -49,31 +49,33 @@ class Devices(threading.Thread):
             if name in self.groups:
                 self.groups[name].sync_with_pilight()
 
-    def user_update(self, u):
+    def user_update(self, updates):
         """ process device updates """
-        config = self.get_update_config(u)
-        if config is not False:
+        configs = self.get_update_config(updates)
+        if len(configs) > 0:
+            logger.debug('USER_UPDATE: got {} updates'.format(len(configs)))
             if not self.lock.acquire(False):
                 logger.debug('USER-UPDATE: update in progress... blocked user input')
             else:
                 try:
-                    logger.debug('USER-UPDATE: update in progress... blocking further input')
-                    """
-                    logger.debug(config)
-                    logger.debug(config['state'])
-                    logger.debug(config['dimlevel'])
-                    """
-                    if 'scene' == config['type']:
-                        """ process scene """
-                        self.process_scene(config)
+                    for config in configs:
+                        logger.debug('USER-UPDATE: update in progress... blocking further input')
+                        """
+                        logger.debug(config)
+                        logger.debug(config['state'])
+                        logger.debug(config['dimlevel'])
+                        """
+                        if 'scene' == config['type']:
+                            """ process scene """
+                            self.process_scene(config)
 
-                    if 'group' == config['type']:
-                        """ process group """
-                        self.process_group(config)
+                        if 'group' == config['type']:
+                            """ process group """
+                            self.process_group(config)
 
-                    if 'light' == config['type']:
-                        """ process light """
-                        self.process_light(config)
+                        if 'light' == config['type']:
+                            """ process light """
+                            self.process_light(config)
                 finally:
                     logger.debug('USER-UPDATE: update ready... releasing lock')
                     self.lock.release()
@@ -81,43 +83,61 @@ class Devices(threading.Thread):
     def recurring_update(self, module=None):
         """ process config updates """
         if isinstance(module, HueSender):
+
             if not self.lock.acquire(False):
                 logger.debug('RECURRING-UPDATE: update in progress... blocked update from bridge')
             else:
                 try:
                     lights = self.daemon.hue.bridge.get_light()
-                    groups = self.daemon.hue.bridge.get_group()
-                    for group in self.groups.values():
-                        group.check_active_scene()
-                        logger.debug('Group {0} has active scene: {1}'.format(group.name, group.has_active_scene()))
-                        if group.has_active_scene() is False:
-                            hue_group = groups[str(group.id)]
-                            logger.debug('Group {0} hue state: {1}'.format(group.name, hue_group['action']['on']))
-                            group.sync_with_hue(lights)
+                    messages = []
+                    for hue_values in lights.values():
+                        for group in self.groups.values():
+                            if group.has_light(hue_values['name']):
+                                light = group.get_light(hue_values['name'])
+                                hue_state = hue_values['state']
+                                on_state = 'on' if hue_state['on'] else 'off'
+                                if hue_state['on'] and hue_state['bri'] != light.dimlevel:
+                                    light.pilight.update_dimlevel(hue_state['bri'])
+                                    light.hue.update_dimlevel(hue_state['bri'])
+                                    message = light.pilight.get_message()
+                                    messages.append(message)
+                                if on_state != light.state:
+                                    light.pilight.update_state(on_state)
+                                    light.hue.update_state(on_state)
+                                    message = light.pilight.get_switch_message()
+                                    messages.append(message)
+
+                    if len(messages) > 0:
+                        self.daemon.pilight.send_message(messages)
+                        for group in self.groups.values():
+                            group.check_active_scene()
                 finally:
                     self.lock.release()
-            
-    def get_update_config(self, u):
-        """ parse update """
-        device = u['devices'][0]
-        if 'hue_' == device[:4]:
-            config = self.parser.parse_device_name(device)
+        return
 
-            state = None
-            dimlevel = None
-            if 'values' in u:
-                values = u['values']
-                
-                if 'state' in values:
-                    state = u['values']['state']
-                    
-                if 'dimlevel' in values:
-                    dimlevel = u['values']['dimlevel']
-                    
-            config['state'] = state
-            config['dimlevel'] = dimlevel
-            return config
-        return False
+    def get_update_config(self, updates):
+        """ parse update """
+        result = []
+        for u in updates:
+            device = u['devices'][0]
+            if 'hue_' == device[:4]:
+                config = self.parser.parse_device_name(device)
+
+                state = None
+                dimlevel = None
+                if 'values' in u:
+                    values = u['values']
+
+                    if 'state' in values:
+                        state = u['values']['state']
+
+                    if 'dimlevel' in values:
+                        dimlevel = u['values']['dimlevel']
+
+                config['state'] = state
+                config['dimlevel'] = dimlevel
+                result.append(config)
+        return result
             
     def process_scene(self, config):
         """ process scene """

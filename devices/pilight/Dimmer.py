@@ -48,6 +48,14 @@ class Dimmer(Switch):
         """ to force update """
         self._dimlevel = None
 
+    def update_dimlevel(self, dimlevel):
+        if isinstance(dimlevel, int) and self._dimlevel != dimlevel:
+            self._dimlevel = dimlevel
+
+    def update_state(self, state):
+        if state in self.valid_states and state != self.state:
+            self._state = state
+
     def get_message(self):
         """ retrieve pilight message """
         message = Switch.get_message(self)
@@ -56,4 +64,9 @@ class Dimmer(Switch):
                 "dimlevel": self.dimlevel
             }
             message['code'].pop('state')
+        return message
+
+    def get_switch_message(self):
+        """ retrieve pilight message """
+        message = Switch.get_message(self)
         return message

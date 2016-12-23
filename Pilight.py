@@ -104,6 +104,7 @@ class Pilight(threading.Thread):
                             pass
                         if "\n\n" in line[-2:]:
                             text = text[:-2]
+                            updates = []
                             
                             for f in iter(text.splitlines()):
                                 if f == 'BEAT':
@@ -112,7 +113,7 @@ class Pilight(threading.Thread):
                                     logger.debug(f)
                                     j = json.loads(f)
                                     if 'origin' in j and j['origin'] == "update":
-                                        self.daemon.user_update(j)
+                                        updates.append(j)
                                     if 'config' in j and self.getConfigFlag is True:
                                         self.getConfigFlag = False
                                         self.receiver.parse_config(j)
@@ -123,6 +124,9 @@ class Pilight(threading.Thread):
                                     pass
                                 except ValueError:
                                     pass
+
+                            if len(updates) > 0:
+                                self.daemon.user_update(updates)
                                     
                             if self.getConfigFlag is True:
                                 self.sender.get_config()

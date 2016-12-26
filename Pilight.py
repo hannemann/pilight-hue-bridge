@@ -110,9 +110,10 @@ class Pilight(threading.Thread):
                                 if f == 'BEAT':
                                     self.alive = True
                                 try:
-                                    logger.debug(f)
                                     j = json.loads(f)
-                                    if 'origin' in j and j['origin'] == "update":
+                                    if 'origin' in j and j['origin'] == "update" and 'time' not in j['devices']:
+                                        logger.debug(f)
+                                        j['origin'] = 'pilight'
                                         updates.append(j)
                                     if 'config' in j and self.getConfigFlag is True:
                                         self.getConfigFlag = False

@@ -122,6 +122,8 @@ class Devices(threading.Thread):
             device = u['devices'][0]
             if 'hue_' == device[:4]:
                 config = self.parser.parse_device_name(device)
+                if 'origin' in u:
+                    config['origin'] = u['origin']
 
                 state = None
                 dimlevel = None
@@ -144,13 +146,18 @@ class Devices(threading.Thread):
         if 'toggle' == config['action'] and 'on' == config['state']:
             if self.groups[config['group']].has_active_scene(config['name']) is False:
                 logger.info('SCENE: Activate scene ' + config['name'])
-                self.groups[config['group']].activate_scene(config['name'])
+                group = self.groups[config['group']]
+                scene = group.get_scene(config['name'])
+                scene.pilight.lock_send = config
+                group.activate_scene(scene.name)
+                scene.pilight.lock_send = False
             
     def process_group(self, config):
         """ process group """
         group = self.groups[config['group']]
         if 'dim' == config['action'] and group.can_modify(config):
             logger.debug('GROUP: Modifying {}'.format(config['group']))
+            group.pilight.lock_send = config
             if config['dimlevel'] is not None:
 
                 logger.info('Deviceaction: Dim group ' + config['group'] + ' to ' + str(config['dimlevel']))
@@ -161,6 +168,7 @@ class Devices(threading.Thread):
                 if self.groups[config['group']].state != config['state']:
                     logger.info('Deviceaction: Switch group ' + config['group'] + ' ' + config['state'])
                     self.groups[config['group']].state = config['state']
+            group.pilight.lock_send = False
             
     def process_light(self, config):
         """ process light """
@@ -171,6 +179,7 @@ class Devices(threading.Thread):
 
             if light.can_modify(config):
                 logger.debug('LIGHT: Modifying ' + light.name + ' in group ' + group.name)
+                light.pilight.lock_send = config
                 if config['dimlevel'] is not None:
                     logger.info('Dim light ' + group.name + ' ' + config['name'] + ' to ' + str(config['dimlevel']))
                     light.dimlevel = config['dimlevel']
@@ -178,17 +187,20 @@ class Devices(threading.Thread):
                 elif config['state'] is not None:
                     logger.info(' Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
                     light.state = config['state']
+                light.pilight.lock_send = False
 
         if 'toggle' == config['action'] and config['state'] is not None:
             group = self.groups[config['group']]
             light = group.lights[config['name']]
+            light.pilight.lock_send = config
             logger.info('Switch light ' + group.name + ' ' + config['name'] + ' ' + config['state'])
             light.state = config['state']
+            light.pilight.lock_send = False
         
         if 'transition' == config['action']:
             transition = self.transitions[config['pilight_device']]
             if 'on' == config['state']:
-                logger.info('Set transtition on light ' + config['name'])
+                logger.info('Set transition on light ' + config['name'])
                 transition.start()
                 
             else:

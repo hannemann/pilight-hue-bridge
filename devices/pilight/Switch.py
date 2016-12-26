@@ -20,6 +20,7 @@ class Switch(object):
         self.config = config
         self.name = name
         self._state = config['state']
+        self._lock_send = False
 
     @property
     def state(self):
@@ -34,10 +35,22 @@ class Switch(object):
             self._state = state
             self.update_pilight()
 
+    @property
+    def lock_send(self):
+        return self._lock_send
+
+    @lock_send.setter
+    def lock_send(self, config):
+        if config is False:
+            self._lock_send = False
+        elif 'origin' in config and 'pilight' == config['origin']:
+            self._lock_send = True
+
     def update_pilight(self):
         """ send updates to pilight """
-        message = self.get_message()
-        self.pilight.send_message(message)
+        if self._lock_send is False:
+            message = self.get_message()
+            self.pilight.send_message(message)
 
     def get_message(self):
         """ retrieve pilight message """

@@ -82,7 +82,7 @@ class Devices(threading.Thread):
     
     def recurring_update(self, module=None):
         """ process config updates """
-        if 1 == 2 and isinstance(module, HueSender):
+        if 1 == 1 and isinstance(module, HueSender):
 
             if not self.lock.acquire(False):
                 logger.debug('RECURRING-UPDATE: update in progress... blocked update from bridge')
@@ -104,8 +104,9 @@ class Devices(threading.Thread):
                                 if on_state != light.state:
                                     light.pilight.update_state(on_state)
                                     light.hue.update_state(on_state)
-                                    message = light.pilight.get_switch_message()
-                                    messages.append(message)
+                                    if 'off' == on_state:
+                                        message = light.pilight.get_switch_message()
+                                        messages.append(message)
 
                     if len(messages) > 0:
                         self.daemon.pilight.send_message(messages)

@@ -26,9 +26,14 @@ class Dimmer(Switch):
     @state.setter
     def state(self, state):
         """ set state """
-        self.mode = 'switch'
-        Switch.state.fset(self, state)
-        self.mode = 'dim'
+        lock_send = self.lock_send
+        if 'off' == state:
+            self._lock_send = False
+            self.mode = 'switch'
+            Switch.state.fset(self, state)
+            self.mode = 'dim'
+        self._state = state
+        self._lock_send = lock_send
 
     @property
     def dimlevel(self):

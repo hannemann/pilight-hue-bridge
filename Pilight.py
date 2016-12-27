@@ -66,16 +66,17 @@ class Pilight(threading.Thread):
                     break
                 except socket.timeout:
                     break
-                except:
+                except socket.error as exc:
                     logger.info("no pilight ssdp connections found")
+                    if _ == self.retries - 1:
+                        raise PilightException(0, exc.strerror)
                     break
-            time.sleep(.2)
+            time.sleep(.5)
         if self.ip is not None and self.port is not None:
             logger.info('pilight discovered')
             return True
         else:
-            logger.info('pilight server not found')
-            return False
+            raise PilightException(0, 'No pilight instance discovered')
 
     def connect(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -100,7 +101,7 @@ class Pilight(threading.Thread):
                         try:
                             line = self.sock.recv(1024)
                             text += line
-                        except:
+                        except socket.error:
                             pass
                         if "\n\n" in line[-2:]:
                             text = text[:-2]
@@ -173,6 +174,10 @@ class Pilight(threading.Thread):
         self.heartbeatTimer.start()
 
     def send_message(self, message):
+        """
+        Args:
+            message (Union[str, list, dict])
+        """
         if message == 'heartbeat':
             message = 'HEART'
         elif isinstance(message, list):
@@ -181,7 +186,7 @@ class Pilight(threading.Thread):
             message = json.dumps(message)
         try:
             self.sock.send(message + '\n')
-        except:
+        except socket.error:
             pass
         return self
     
@@ -192,7 +197,7 @@ class Pilight(threading.Thread):
             try:
                 line = self.sock.recv(1024)
                 text += line
-            except:
+            except socket.error:
                 pass
             if "\n\n" in line[-2:]:
                 text = text[:-2]
@@ -230,3 +235,10 @@ class Pilight(threading.Thread):
         if self.heartbeatTimer is not None:
             self.heartbeatTimer.cancel()
         self.terminate = True
+
+
+class PilightException(Exception):
+
+    def __init__(self, exc_id, message):
+        self.id = exc_id
+        self.message = message

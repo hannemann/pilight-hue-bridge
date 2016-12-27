@@ -1,0 +1,25 @@
+; Place o copy of this file either in program dir, /home/user/.config/pilight-hue-bridge
+; /etc/pilight-hue-bridge or specify the location via environment variable PILIGHT_HUE_BRIDGE_CONF.
+; Rename it to config.ini and set hue address and user for the program to be able to work
+; a pilight configuration is not needed since pilight is detected automatically
+; (tested only in a single instance environment)
+; restart program to apply changes
+
+[general]
+; Debug mode: modes and levels separated by colon, levels separated by comma
+; modes: d=main program, a=hue api, p=pilight module, h=hue module
+; levels: debug, info, warning, error, critical
+; e.g.: dpa:debug,info to set debug on main program
+; info on pilight and info on hue api (because explicit level on a is omitted)
+;debug=d:debug
+
+[hue]
+; bridge address
+address=192.168.XXX.XXX
+; bridge user
+user=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+; [EXPERIMENTAL]
+; load updates from bridge and apply them to pilight devices
+; you may encounter endless loops in pilight and you have to restart pilight
+; default: off
+;auto_update=on

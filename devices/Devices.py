@@ -1,4 +1,4 @@
-from HueSender import HueSender
+from Hue import Hue
 from DeviceParser import DeviceParser
 import threading
 import time
@@ -82,7 +82,7 @@ class Devices(threading.Thread):
     
     def recurring_update(self, module=None):
         """ process config updates """
-        if 1 == 2 and isinstance(module, HueSender):
+        if isinstance(module, Hue):
 
             if not self.lock.acquire(False):
                 logger.debug('RECURRING-UPDATE: update in progress... blocked update from bridge')

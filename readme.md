@@ -5,6 +5,8 @@ python program to connect pilight with the hue bridge based on [phue](https://gi
 The program can be run on any computer within your network but its
 recommended to install it on your pilight pi
 
+Tested in a single instance pilight environment
+
 ## Install on your pi
 * install [phue](https://github.com/studioimaginaire/phue)
 * clone repository in your home folder

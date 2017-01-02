@@ -198,7 +198,7 @@ def usage(with_config=False):
         print '\t\t"id": [{'
         print '\t\t\t"id": 25'
         print '\t\t}],'
-        print '\t\tstate": "off"'
+        print '\t\t"state": "off"'
         print '\t}'
         print '\n\tHue transition: (dims from 1 to 254 in 30 minutes)'
         print '\t"hue_light_Huegroupname_Huedevicename_transition_1_254_18000": {'
@@ -206,7 +206,7 @@ def usage(with_config=False):
         print '\t\t"id": [{'
         print '\t\t\t"id": 27'
         print '\t\t}],'
-        print '\t\tstate": "off"'
+        print '\t\t"state": "off"'
         print '\t}'
     print '\n'
 

@@ -106,6 +106,7 @@ class Group(Dimmable):
         scene = self.get_scene(name)
         if scene is not None:
             self.lock_light_callbacks()
+            self.pilight.state = 'on'
             self.state = 'on'
             scene.state = 'on'
             self.activeScene = scene
